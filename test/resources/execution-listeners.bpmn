@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_listeners" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:process id="audited" isExecutable="true">
+    <bpmn:startEvent id="start">
+      <bpmn:outgoing>to-task</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="to-task" sourceRef="start" targetRef="task" />
+    <bpmn:serviceTask id="task" name="Do work">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="work" />
+        <zeebe:executionListeners>
+          <zeebe:executionListener eventType="start" type="audit-start" retries="5">
+            <zeebe:taskHeaders>
+              <zeebe:header key="channel" value="audit" />
+              <zeebe:header key="level" value="info" />
+            </zeebe:taskHeaders>
+          </zeebe:executionListener>
+          <zeebe:executionListener eventType="end" type="audit-end" />
+        </zeebe:executionListeners>
+      </bpmn:extensionElements>
+      <bpmn:incoming>to-task</bpmn:incoming>
+      <bpmn:outgoing>to-end</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="to-end" sourceRef="task" targetRef="end" />
+    <bpmn:endEvent id="end">
+      <bpmn:incoming>to-end</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_audited">
+    <bpmndi:BPMNPlane id="BPMNPlane_audited" bpmnElement="audited">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="180" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="task_di" bpmnElement="task">
+        <dc:Bounds x="270" y="78" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="430" y="100" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="to-task_di" bpmnElement="to-task">
+        <di:waypoint x="216" y="118" />
+        <di:waypoint x="270" y="118" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="to-end_di" bpmnElement="to-end">
+        <di:waypoint x="370" y="118" />
+        <di:waypoint x="430" y="118" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

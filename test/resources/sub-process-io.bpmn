@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" id="Definitions_sub_io" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.48.0" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.6.0">
+  <bpmn:process id="order" isExecutable="true">
+    <bpmn:startEvent id="start">
+      <bpmn:outgoing>to-tally</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:sequenceFlow id="to-tally" sourceRef="start" targetRef="tally" />
+    <bpmn:subProcess id="tally" name="Tally">
+      <bpmn:extensionElements>
+        <zeebe:ioMapping>
+          <zeebe:input source="= order.total" target="amount" />
+          <zeebe:output source="= total" target="grandTotal" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>to-tally</bpmn:incoming>
+      <bpmn:outgoing>to-end</bpmn:outgoing>
+      <bpmn:startEvent id="sub-start">
+        <bpmn:outgoing>sub-to-fee</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="sub-to-fee" sourceRef="sub-start" targetRef="add-fee" />
+      <bpmn:serviceTask id="add-fee" name="Add fee">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="add-fee" />
+          <zeebe:ioMapping>
+            <zeebe:output source="= amount + 5" target="total" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:incoming>sub-to-fee</bpmn:incoming>
+        <bpmn:outgoing>fee-to-end</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="fee-to-end" sourceRef="add-fee" targetRef="sub-end" />
+      <bpmn:endEvent id="sub-end">
+        <bpmn:incoming>fee-to-end</bpmn:incoming>
+      </bpmn:endEvent>
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="to-end" sourceRef="tally" targetRef="end" />
+    <bpmn:endEvent id="end">
+      <bpmn:incoming>to-end</bpmn:incoming>
+    </bpmn:endEvent>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_order">
+    <bpmndi:BPMNPlane id="BPMNPlane_order" bpmnElement="order">
+      <bpmndi:BPMNShape id="start_di" bpmnElement="start">
+        <dc:Bounds x="180" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="tally_di" bpmnElement="tally" isExpanded="true">
+        <dc:Bounds x="270" y="80" width="320" height="180" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sub-start_di" bpmnElement="sub-start">
+        <dc:Bounds x="310" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="add-fee_di" bpmnElement="add-fee">
+        <dc:Bounds x="390" y="130" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="sub-end_di" bpmnElement="sub-end">
+        <dc:Bounds x="532" y="152" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="sub-to-fee_di" bpmnElement="sub-to-fee">
+        <di:waypoint x="346" y="170" />
+        <di:waypoint x="390" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="fee-to-end_di" bpmnElement="fee-to-end">
+        <di:waypoint x="490" y="170" />
+        <di:waypoint x="532" y="170" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="end_di" bpmnElement="end">
+        <dc:Bounds x="652" y="142" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="to-tally_di" bpmnElement="to-tally">
+        <di:waypoint x="216" y="160" />
+        <di:waypoint x="270" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="to-end_di" bpmnElement="to-end">
+        <di:waypoint x="590" y="160" />
+        <di:waypoint x="652" y="160" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
