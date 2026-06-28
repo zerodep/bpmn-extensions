@@ -77,6 +77,13 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
 - **Service tasks**: `zeebe:taskDefinition type="x"` → the environment service named `x`. The
   service callback result becomes the job variables that `zeebe:ioMapping` output operates on. With
   no output mapping, the whole job result is merged into the process.
+- **Business rule tasks**: bpmn-elements maps `bpmn:BusinessRuleTask` to the **ServiceTask**
+  behaviour (`ServiceTask as BusinessRuleTask`), so a `zeebe:taskDefinition` one just works as a job
+  worker. A `zeebe:calledDecision` one resolves `decisionId` via an environment service (same
+  `JobService` trick, bound to the decision id — we don't evaluate DMN) and its result is named by
+  `resultVariable`. `resultVariable` handling in `ElementExtensions.#formatOnExecuted` is shared by
+  script tasks (`zeebe:script`) and business rule tasks (`script || calledDecision`): the single
+  result is wrapped as `{ [resultVariable]: result }` (a plain job result is merged whole instead).
 - **Io mapping propagation across processes.** (1) **input** — bpmn-elements (>= 18.0.4) forwards a
   call activity's formatted input (its io mapping + the multi-instance loop element) on the called
   process's `content.inbound[0].input`, but exposes it nested under `input`; `ProcessExtensions`
@@ -150,5 +157,5 @@ result scope, in input order.
 
 ## Not yet implemented
 
-Called decisions, user-task priority/schedule, message `zeebe:subscription`. The
+User-task priority/schedule, message `zeebe:subscription`. The
 `zeebe-bpmn-moddle` schema covers these — extend `getExtensions.js`/`extendFn` and add a module per element.

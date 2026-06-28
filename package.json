@@ -1,6 +1,6 @@
 {
   "name": "@0dep/bpmn-extensions",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Flow extensions for bpmn-elements: FEEL expressions and the zeebe-namespace BPMN extension elements",
   "type": "module",
   "module": "src/index.js",

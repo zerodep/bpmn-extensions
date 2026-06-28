@@ -18,6 +18,8 @@ import { JobService } from './extensions/TaskDefinition.js';
  *   listeners?: ExecutionListeners,
  *   form?: Form,
  *   loop?: LoopCharacteristics,
+ *   script?: any,
+ *   calledDecision?: any,
  *   Service?: Function,
  * }}
  */
@@ -50,6 +52,13 @@ export function getExtensions(element) {
           break;
         case 'zeebe:Script':
           result.script = ext;
+          break;
+        case 'zeebe:CalledDecision':
+          // A business rule task runs as a service task (bpmn-elements maps it to ServiceTask). The
+          // decision is resolved by an environment service named by the decision id; its result is
+          // named by `resultVariable`.
+          result.calledDecision = ext;
+          result.Service = JobService.bind(JobService, ext.decisionId);
           break;
         case 'zeebe:FormDefinition':
           result.form = new Form(ext);

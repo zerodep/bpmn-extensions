@@ -35,12 +35,13 @@ export class ProcessBuilder {
     return this.moddle.create('bpmn:ExtensionElements', { values });
   }
 
-  #buildExtensions({ jobType, retries, io, headers, properties, assignment, executionListeners, script, form, userTask }) {
+  #buildExtensions({ jobType, retries, io, headers, properties, assignment, executionListeners, script, calledDecision, form, userTask }) {
     const m = this.moddle;
     const values = [];
     if (userTask) values.push(m.create('zeebe:UserTask', {}));
     if (jobType !== undefined) values.push(m.create('zeebe:TaskDefinition', { type: jobType, retries }));
     if (script) values.push(m.create('zeebe:Script', { expression: script.expression, resultVariable: script.resultVariable }));
+    if (calledDecision) values.push(m.create('zeebe:CalledDecision', calledDecision));
     if (form) values.push(m.create('zeebe:FormDefinition', form));
     if (io) {
       values.push(
@@ -101,6 +102,10 @@ export class ProcessBuilder {
 
   scriptTask(id, config = {}) {
     return this.task('bpmn:ScriptTask', id, config);
+  }
+
+  businessRuleTask(id, config = {}) {
+    return this.task('bpmn:BusinessRuleTask', id, config);
   }
 
   exclusiveGateway(id) {

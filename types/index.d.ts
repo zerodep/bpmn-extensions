@@ -96,6 +96,8 @@ declare module '@0dep/bpmn-extensions' {
 			listeners?: ExecutionListeners;
 			form?: Form;
 			loop?: LoopCharacteristics;
+			script?: any;
+			calledDecision?: any;
 			Service?: Function;
 		};
 		activate(message: any): void;
@@ -123,6 +125,8 @@ declare module '@0dep/bpmn-extensions' {
 			listeners?: ExecutionListeners;
 			form?: Form;
 			loop?: LoopCharacteristics;
+			script?: any;
+			calledDecision?: any;
 			Service?: Function;
 		};
 		activate(): void;

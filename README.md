@@ -24,6 +24,8 @@ npm install @0dep/bpmn-extensions bpmn-elements
 - **`zeebe:script`** — a `FeelScripts()` adapter runs a script task's FEEL `expression` and assigns
   the result to its `resultVariable`.
 - **`zeebe:taskDefinition`** — maps a service task's job `type` to an environment service (job worker).
+- **`zeebe:calledDecision`** — a business rule task resolves its `decisionId` via an environment
+  service (you bring the decision; we don't evaluate DMN) and assigns the result to `resultVariable`.
 - **`zeebe:ioMapping`** — input mapping on entry (parent scope) and output mapping on completion
   (job-result scope), with dotted `target` paths. Propagates across boundaries: a call activity's
   input reaches the called process and its output maps the called process result back; a sub

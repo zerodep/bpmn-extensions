@@ -97,7 +97,7 @@ export class ElementExtensions {
     return result;
   }
   #formatOnExecuted(elementApi) {
-    const { io, script, loop } = this.extensions;
+    const { io, script, calledDecision, loop } = this.extensions;
     let jobResult = elementApi.content.output;
 
     // Multi-instance: aggregate the per-instance outputs into the `outputCollection` array.
@@ -113,9 +113,10 @@ export class ElementExtensions {
       jobResult = jobResult.output;
     }
 
-    // A script task's FEEL result is named by its `resultVariable`; a job's result is already
-    // an object of variables.
-    const resultObject = script ? (script.resultVariable ? { [script.resultVariable]: jobResult } : undefined) : jobResult;
+    // A script task (`zeebe:script`) or business rule task (`zeebe:calledDecision`) names its single
+    // result with `resultVariable`. A plain job's result is already an object of variables.
+    const named = script || calledDecision;
+    const resultObject = named ? (named.resultVariable ? { [named.resultVariable]: jobResult } : undefined) : jobResult;
 
     let output;
     if (io?.hasOutput) {
