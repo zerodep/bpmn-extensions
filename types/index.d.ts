@@ -29,7 +29,10 @@ declare module '@0dep/bpmn-extensions' {
 	 * `${...}` template expressions.
 	 *
 	 * */
-	export function FeelExpressions(): import("bpmn-elements").IExpressions;
+	export function FeelExpressions(): import("bpmn-elements").IExpressions & {
+		isExpression: (text: string) => boolean;
+		hasExpression: (text: string) => boolean;
+	};
 	/**
 	 * A bpmn-elements `scripts` implementation for script tasks.
 	 *
@@ -164,7 +167,8 @@ declare module '@0dep/bpmn-extensions' {
 	 * @param expression FEEL unary test
 	 * @param input The value being tested, available as `?` in the test
 	 * @param context Additional variables in scope
-	 * */
+	 * @returns true only when the test is satisfied — an undecidable (null) test is false
+	 */
 	export function evaluateFeelUnaryTest(expression: string, input: any, context?: Record<string, any>): boolean;
 	/**
 	 * Resolve a value: evaluate it as FEEL when it starts with `=`, otherwise

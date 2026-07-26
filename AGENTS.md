@@ -41,6 +41,17 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   then run on a **real bpmn-elements `Definition`** (not bpmn-engine) via `test/helpers/testHelpers.js`.
   `expect` is a **global** — `.mocharc.cjs` does `require: 'chai/register-expect.js'`, so test files
   don't import it (it's also declared in the eslint test-files globals).
+- **Tests are type-checked** with `tsc -p test/tsconfig.json` (extends the root config: `checkJs`,
+  `noEmit`, `noImplicitAny` off — plain-JS tests, so only real type mismatches surface;
+  `test/globals.d.ts` declares `expect` and the mocha-cakes-2 globals). The name-import
+  (`@0dep/bpmn-extensions`) resolves through the `types` export condition to the generated
+  `types/index.d.ts`, so this checks the **published** surface; `test/src` unit tests pull raw
+  `src/` JSDoc in as well. Conventions this forces: a service function that reads `this` annotates
+  `/** @this {import('bpmn-elements').Activity} */` (that is what `serviceFn.call(activity, ...)`
+  binds); minimal unit-test fakes are cast with `/** @type {any} */ (...)` rather than fleshed out.
+  Known upstream (bpmn-elements) type gaps worked around here: `IScripts.getScript` is declared to
+  return a bare `Script` (ours can return undefined — any-cast in `FeelScripts`), and the
+  `services` record's `CallableFunction` says nothing about `this`.
 - **README examples are executed** with **texample** (`npm run test:md`, part of `posttest` and
   `test:lcov`). It runs every ` ```javascript ` block and **ignores** ` ```js ` blocks — so a
   runnable, self-contained example uses `javascript`; a non-runnable snippet uses `js`. The example

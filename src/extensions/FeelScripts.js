@@ -16,10 +16,18 @@ export function FeelScripts() {
 }
 
 class FeelScriptRegistry {
-  register() {}
+  register() {
+    return undefined;
+  }
+  /**
+   * @param {string} _scriptFormat
+   * @param {{ id: string, [x: string]: any }} activity
+   * @returns {import('bpmn-elements').Script} the FEEL script, or undefined when the activity
+   *   has no `zeebe:script` — bpmn-elements handles that, but `IScripts` declares a bare `Script`
+   */
   getScript(_scriptFormat, activity) {
     const expression = getScriptExpression(activity);
-    if (expression === undefined) return undefined;
+    if (expression === undefined) return /** @type {any} */ (undefined);
     return new FeelScript(expression);
   }
 }

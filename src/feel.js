@@ -40,11 +40,11 @@ export function evaluateFeel(expression, context) {
  * @param {string} expression FEEL unary test
  * @param {any} input The value being tested, available as `?` in the test
  * @param {Record<string, any>} [context] Additional variables in scope
- * @returns {boolean}
+ * @returns {boolean} true only when the test is satisfied — an undecidable (null) test is false
  */
 export function evaluateFeelUnaryTest(expression, input, context) {
   const { value } = unaryTest(stripFeel(expression), { ...(context || {}), '?': input });
-  return value;
+  return value === true;
 }
 
 /**

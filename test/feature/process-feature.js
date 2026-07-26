@@ -7,6 +7,7 @@ function buildProcess(options) {
 
 Feature('Process extensions', () => {
   Scenario('process documentation becomes the description variable', () => {
+    /** @type {import('bpmn-elements').Definition} */
     let definition;
 
     Given('a process with documentation containing a FEEL expression', async () => {
@@ -28,7 +29,9 @@ Feature('Process extensions', () => {
   });
 
   Scenario('a failing format faults the process', () => {
-    let definition, error;
+    /** @type {import('bpmn-elements').Definition} */
+    let definition;
+    let error;
 
     Given('a process whose documentation is an invalid FEEL expression', async () => {
       const source = await buildProcess({ documentation: '= 1 +' });
@@ -36,8 +39,8 @@ Feature('Process extensions', () => {
     });
 
     When('it runs', async () => {
-      await new Promise((resolve) => {
-        definition.once('leave', () => resolve());
+      await new /** @type {typeof Promise<void>} */ (Promise)((resolve) => {
+        definition.once('leave', resolve);
         definition.once('error', (err) => {
           error = err;
           resolve();

@@ -22,6 +22,7 @@ Feature('Io mapping propagation', () => {
       definition = await createDefinition(source, {
         variables: { order: { total: 42 } },
         services: {
+          /** @this {import('bpmn-elements').Activity} */
           charge(_, callback) {
             // The call activity input mapping `= order.total -> amount` reached the called process.
             chargedAmount = this.environment.variables.amount;
@@ -52,6 +53,7 @@ Feature('Io mapping propagation', () => {
       definition = await createDefinition(source, {
         variables: { order: { total: 10 } },
         services: {
+          /** @this {import('bpmn-elements').Activity} */
           'add-fee'(_, callback) {
             feeSawAmount = this.environment.variables.amount;
             callback(null, {});

@@ -1,4 +1,4 @@
-import { extendFn } from '../../src/index.js';
+import { extendFn } from '@0dep/bpmn-extensions';
 
 Feature('extendFn behaviour extender', () => {
   Scenario('a call activity with a called element', () => {

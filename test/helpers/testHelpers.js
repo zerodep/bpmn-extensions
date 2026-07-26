@@ -4,9 +4,11 @@ import * as elements from 'bpmn-elements';
 import { Serializer, TypeResolver } from 'moddle-context-serializer';
 import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' };
 
-import { extensions, extendFn, FeelExpressions, FeelScripts } from '../../src/index.js';
+import { extensions, extendFn, FeelExpressions, FeelScripts } from '@0dep/bpmn-extensions';
 
-const typeResolver = TypeResolver(elements);
+// The bpmn-elements namespace also exports non-constructors (TimerTypeValue), which the
+// TypeResolver parameter type does not admit — it ignores them at runtime.
+const typeResolver = TypeResolver(/** @type {any} */ (elements));
 
 /**
  * A bpmn-elements logger factory wired to the `debug` package, so the engine and the extensions

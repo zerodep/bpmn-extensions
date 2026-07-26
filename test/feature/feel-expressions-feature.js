@@ -1,4 +1,4 @@
-import { isFeelExpression, evaluateFeel, evaluateFeelUnaryTest, resolveValue, FeelExpressions } from '../../src/index.js';
+import { isFeelExpression, evaluateFeel, evaluateFeelUnaryTest, resolveValue, FeelExpressions } from '@0dep/bpmn-extensions';
 
 Feature('FEEL expressions', () => {
   Scenario('recognising FEEL expressions', () => {
@@ -15,6 +15,7 @@ Feature('FEEL expressions', () => {
   });
 
   Scenario('evaluating expressions against variables', () => {
+    /** @type {any} */
     let result;
     When('an arithmetic expression is evaluated', () => {
       result = evaluateFeel('= order.total * quantity', { order: { total: 10 }, quantity: 3 });

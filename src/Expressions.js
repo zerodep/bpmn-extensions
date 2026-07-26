@@ -7,7 +7,7 @@ import { isFeelExpression, evaluateFeel } from './feel.js';
  * definition resolves FEEL expressions (`= ...`) instead of the default
  * `${...}` template expressions.
  *
- * @returns {import('bpmn-elements').IExpressions}
+ * @returns {import('bpmn-elements').IExpressions & {isExpression: (text:string) => boolean, hasExpression: (text:string) => boolean}}
  */
 export function FeelExpressions() {
   return {

@@ -23,6 +23,7 @@ Feature('Collection parallel multi-instance call activity', () => {
         variables: { items: ['a', 'b', 'c'] },
         services: {
           // The multi-instance element (`item`) is forwarded into the called process.
+          /** @this {import('bpmn-elements').Activity} */
           'process-item'(_, callback) {
             processedItems.push(this.environment.variables.item);
             callback(null, {});

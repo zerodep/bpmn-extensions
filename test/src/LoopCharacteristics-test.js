@@ -21,7 +21,7 @@ Feature('LoopCharacteristics output aggregation edge cases', () => {
     Then('aggregation yields an empty array', () => {
       const loop = new LoopCharacteristics({ outputCollection: 'results', outputElement: '= 1' });
       expect(loop.aggregate(undefined, {})).to.deep.equal([]);
-      expect(loop.aggregate('not-an-object', {})).to.deep.equal([]);
+      expect(loop.aggregate(/** @type {any} */ ('not-an-object'), {})).to.deep.equal([]);
     });
   });
 });

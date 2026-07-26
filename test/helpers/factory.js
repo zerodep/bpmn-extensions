@@ -13,7 +13,28 @@ import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' 
  *   .connect('charge', 'end')
  *   .toXML();
  */
+/**
+ * Task configuration mapped onto `zeebe:*` extension elements.
+ * @typedef {object} TaskConfig
+ * @property {string} [jobType]
+ * @property {string|number} [retries]
+ * @property {{ input?: { source: string, target: string }[], output?: { source: string, target: string }[] }} [io]
+ * @property {Record<string, any>} [headers]
+ * @property {Record<string, any>} [properties]
+ * @property {Record<string, any>} [assignment]
+ * @property {Record<string, any>[]} [executionListeners]
+ * @property {{ expression: string, resultVariable?: string }} [script]
+ * @property {Record<string, any>} [calledDecision]
+ * @property {Record<string, any>} [form]
+ * @property {boolean} [userTask]
+ * @property {string} [documentation]
+ */
+
 export class ProcessBuilder {
+  /**
+   * @param {string} [id]
+   * @param {{ documentation?: string }} [options]
+   */
   constructor(id = 'process', { documentation } = {}) {
     this.moddle = new BpmnModdle({ zeebe: schema });
     this.id = id;
@@ -35,6 +56,7 @@ export class ProcessBuilder {
     return this.moddle.create('bpmn:ExtensionElements', { values });
   }
 
+  /** @param {TaskConfig} config */
   #buildExtensions({ jobType, retries, io, headers, properties, assignment, executionListeners, script, calledDecision, form, userTask }) {
     const m = this.moddle;
     const values = [];
@@ -84,6 +106,11 @@ export class ProcessBuilder {
     return this.#add(this.moddle.create('bpmn:EndEvent', { id }));
   }
 
+  /**
+   * @param {string} type
+   * @param {string} id
+   * @param {TaskConfig} [config]
+   */
   task(type, id, config = {}) {
     const extensionElements = this.#buildExtensions(config);
     const attrs = { id };
