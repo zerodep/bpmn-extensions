@@ -51,14 +51,14 @@
     "access": "public"
   },
   "peerDependencies": {
-    "bpmn-elements": ">=18.0.4"
+    "bpmn-elements": ">=18.0.12"
   },
   "dependencies": {
     "feelin": "^7.0.1"
   },
   "overrides": {
     "mocha": {
-      "yargs": "^18.0.0"
+      "yargs": "^18.1.0"
     }
   },
   "devDependencies": {
@@ -68,7 +68,7 @@
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.1.1",
-    "bpmn-elements": "^18.0.4",
+    "bpmn-elements": "^18.0.12",
     "bpmn-moddle": "^9.0.1",
     "c8": "^12.0.0",
     "chai": "^6.2.2",

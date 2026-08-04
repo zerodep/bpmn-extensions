@@ -2,6 +2,13 @@ import { getExtensions } from './getExtensions.js';
 
 const SUBPROCESS_TYPES = new Set(['bpmn:SubProcess', 'bpmn:AdHocSubProcess', 'bpmn:Transaction']);
 
+// Consumer tags shared between activate (here and in the SubProcessExtensions override) and
+// deactivate — deactivate cancels by tag, so both must subscribe with these exact tags.
+export const ON_ENTER_TAG = '0dep-bpmn-extensions:on-enter';
+export const ON_EXECUTED_TAG = '0dep-bpmn-extensions:on-executed';
+export const ON_START_TAG = '0dep-bpmn-extensions:on-start';
+export const ON_END_TAG = '0dep-bpmn-extensions:on-end';
+
 /**
  * Activity-level extensions.
  *
@@ -10,43 +17,55 @@ const SUBPROCESS_TYPES = new Set(['bpmn:SubProcess', 'bpmn:AdHocSubProcess', 'bp
  * proceeding — the same mechanism bpmn-elements uses for extension formatting.
  */
 export class ElementExtensions {
-  constructor(activity) {
+  /**
+   * @param {import('bpmn-elements').Activity} activity
+   * @param {import('bpmn-elements').ContextInstance} context
+   */
+  constructor(activity, context) {
     this.activity = activity;
     this.formatQ = activity.broker.getQueue('format-run-q');
 
-    this.extensions = getExtensions(activity);
+    /** @type {import('./getExtensions.js').ExtensionHandlers} */
+    this.extensions = getExtensions(activity, context);
     const Service = this.extensions.Service;
     if (Service) activity.behaviour.Service = Service;
   }
+  /**
+   * Activate extensions
+   * @param {import('bpmn-elements').ElementBrokerMessage} message
+   */
   activate(message) {
     const activity = this.activity;
     const listeners = this.extensions.listeners;
 
     if (message.fields.redelivered && message.fields.routingKey === 'run.start') {
-      activity.on('start', (api) => this._onEnter(api), { consumerTag: '0dep-bpmn-extensions:on-enter' });
+      activity.on('start', (api) => this._onEnter(api), { consumerTag: ON_ENTER_TAG });
     } else {
-      activity.on('enter', (api) => this._onEnter(api), { consumerTag: '0dep-bpmn-extensions:on-enter' });
+      activity.on('enter', (api) => this._onEnter(api), { consumerTag: ON_ENTER_TAG });
     }
 
     activity.on('activity.execution.completed', (api) => this._onExecuted(api), {
-      consumerTag: '0dep-bpmn-extensions:on-executed',
+      consumerTag: ON_EXECUTED_TAG,
     });
 
     if (listeners?.onStart) {
-      activity.on('start', (api) => this._onListener('start', api), { consumerTag: '0dep-bpmn-extensions:on-start' });
+      activity.on('start', (api) => this._onListener('start', api), { consumerTag: ON_START_TAG });
     }
     if (listeners?.onEnd) {
-      activity.on('end', (api) => this._onListener('end', api), { consumerTag: '0dep-bpmn-extensions:on-end' });
+      activity.on('end', (api) => this._onListener('end', api), { consumerTag: ON_END_TAG });
     }
   }
   deactivate() {
     const broker = this.activity.broker;
-    broker.cancel('0dep-bpmn-extensions:on-enter');
-    broker.cancel('0dep-bpmn-extensions:on-executed');
-    broker.cancel('0dep-bpmn-extensions:on-start');
-    broker.cancel('0dep-bpmn-extensions:on-end');
+    broker.cancel(ON_ENTER_TAG);
+    broker.cancel(ON_EXECUTED_TAG);
+    broker.cancel(ON_START_TAG);
+    broker.cancel(ON_END_TAG);
   }
-  /** @internal Shared with SubProcessExtensions. */
+  /**
+   * @internal Shared with SubProcessExtensions.
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   */
   async _onEnter(elementApi) {
     this.formatQ.queueMessage({ routingKey: 'run.enter.format' }, { endRoutingKey: 'run.enter.complete' }, { persistent: false });
     try {
@@ -56,7 +75,10 @@ export class ElementExtensions {
       elementApi.broker.publish('format', 'run.enter.error', { error: err }, { persistent: false });
     }
   }
-  /** @internal Shared with SubProcessExtensions. */
+  /**
+   * @internal Shared with SubProcessExtensions.
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   */
   async _onExecuted(elementApi) {
     this.formatQ.queueMessage({ routingKey: 'run.end.format' }, { endRoutingKey: 'run.end.complete' }, { persistent: false });
     try {
@@ -66,7 +88,10 @@ export class ElementExtensions {
       elementApi.broker.publish('format', 'run.end.error', { error: err }, { persistent: false });
     }
   }
-  /** @internal Shared with SubProcessExtensions. */
+  /**
+   * @internal Shared with SubProcessExtensions.
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   */
   async _onListener(eventType, elementApi) {
     const routingKey = `run.listener.${eventType}`;
     this.formatQ.queueMessage({ routingKey }, { endRoutingKey: `${routingKey}.complete` }, { persistent: false });
@@ -78,13 +103,17 @@ export class ElementExtensions {
       elementApi.broker.publish('format', `${routingKey}.error`, { error: err }, { persistent: false });
     }
   }
+  /**
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   */
   #formatOnEnter(elementApi) {
-    const { format, io, headers, properties, form } = this.extensions;
+    const { format, io, headers, properties, form, subscription } = this.extensions;
     const result = { ...format.resolve(elementApi) };
 
     if (headers) result.headers = headers.resolve();
     if (properties) result.properties = properties.resolve(elementApi);
     if (form) result.form = form.resolve(elementApi);
+    if (subscription) result.subscription = subscription.resolve(elementApi);
     if (io?.hasInput) {
       result.input = io.getInput(elementApi);
       // A (sub) process input mapping creates local variables visible to its children; a job
@@ -96,6 +125,9 @@ export class ElementExtensions {
     Object.assign(elementApi.content, result);
     return result;
   }
+  /**
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   */
   #formatOnExecuted(elementApi) {
     const { io, script, calledDecision, loop } = this.extensions;
     let jobResult = elementApi.content.output;
@@ -132,6 +164,10 @@ export class ElementExtensions {
     }
     return {};
   }
+  /**
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   * @param {any} output
+   */
   #assignOutput(elementApi, output) {
     const environment = this.activity.environment;
     // Visible to downstream FEEL within the process, and surfaced as process output

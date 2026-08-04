@@ -22,6 +22,12 @@ export function JobService(taskType, activity) {
   this.activity = activity;
 }
 
+/**
+ * Execute
+ * @param {import('bpmn-elements').ElementBrokerMessage} executionMessage
+ * @param {CallableFunction} callback
+ * @returns {any}
+ */
 JobService.prototype.execute = function execute(executionMessage, callback) {
   const activity = this.activity;
   const environment = activity.environment;

@@ -6,24 +6,31 @@ import { ExecutionListeners } from './extensions/ExecutionListeners.js';
 import { Form } from './extensions/Form.js';
 import { LoopCharacteristics } from './extensions/LoopCharacteristics.js';
 import { JobService } from './extensions/TaskDefinition.js';
+import { Subscription } from './extensions/Subscription.js';
+
+/**
+ * The extension handlers assembled for one element.
+ * @typedef {object} ExtensionHandlers
+ * @property {FormatActivity | FormatProcess} format
+ * @property {IoMapping} [io]
+ * @property {TaskHeaders} [headers]
+ * @property {Properties} [properties]
+ * @property {ExecutionListeners} [listeners]
+ * @property {Form} [form]
+ * @property {LoopCharacteristics} [loop]
+ * @property {any} [script]
+ * @property {any} [calledDecision]
+ * @property {Function} [Service]
+ * @property {Subscription} [subscription]
+ */
 
 /**
  * Inspect an element's extension elements and assemble the extension handlers it needs.
  * @param {import('bpmn-elements').Activity | import('bpmn-elements').Process} element
- * @returns {{
- *   format: FormatActivity | FormatProcess,
- *   io?: IoMapping,
- *   headers?: TaskHeaders,
- *   properties?: Properties,
- *   listeners?: ExecutionListeners,
- *   form?: Form,
- *   loop?: LoopCharacteristics,
- *   script?: any,
- *   calledDecision?: any,
- *   Service?: Function,
- * }}
+ * @param {import('bpmn-elements').ContextInstance} [context]
+ * @returns {ExtensionHandlers}
  */
-export function getExtensions(element) {
+export function getExtensions(element, context) {
   const result = {};
   const isProcess = element.type === 'bpmn:Process';
 
@@ -65,6 +72,18 @@ export function getExtensions(element) {
           break;
       }
     }
+  }
+
+  // A message catch (receive task / message event) may reference a bpmn:Message carrying a
+  // zeebe:subscription with the correlation key. The subscription lives on the message element,
+  // which the instantiated bpmn-elements Message strips — read it off the serialized context.
+  const messageRef =
+    element.behaviour.messageRef ?? element.behaviour.eventDefinitions?.find((ed) => ed.behaviour?.messageRef)?.behaviour.messageRef;
+  if (messageRef?.id && context) {
+    const subscription = context.definitionContext
+      .getActivityById(messageRef.id)
+      ?.behaviour.extensionElements?.values?.find((v) => v.$type === 'zeebe:Subscription');
+    if (subscription?.correlationKey) result.subscription = new Subscription(messageRef, subscription);
   }
 
   // Output side of a multi-instance `zeebe:loopCharacteristics` (the input side is lifted by extendFn).

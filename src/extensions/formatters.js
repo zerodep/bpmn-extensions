@@ -5,10 +5,17 @@ import { resolveValue } from '../feel.js';
  * for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups).
  */
 export class FormatActivity {
+  /**
+   * @param {import('bpmn-elements').Activity} activity
+   * @param {any} assignmentDefinition
+   */
   constructor(activity, assignmentDefinition) {
     this.activity = activity;
     this.assignmentDefinition = assignmentDefinition;
   }
+  /**
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
+   */
   resolve(elementApi) {
     const scope = elementApi.environment.variables;
     const result = {};
@@ -37,9 +44,15 @@ export class FormatActivity {
  * Format a process on enter: documentation.
  */
 export class FormatProcess {
+  /**
+   * @param {import('bpmn-elements').Process} bp
+   */
   constructor(bp) {
     this.process = bp;
   }
+  /**
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Process>} elementApi
+   */
   resolve(elementApi) {
     const result = {};
     const documentation = this.process.behaviour.documentation;
@@ -58,7 +71,7 @@ export class FormatProcess {
 function resolveList(value, scope) {
   if (!value) return undefined;
   const resolved = resolveValue(value, scope);
-  if (Array.isArray(resolved)) return resolved.filter((v) => v !== null && v !== undefined);
+  if (Array.isArray(resolved)) return resolved.filter(Boolean);
   if (typeof resolved !== 'string') return undefined;
   return resolved
     .split(',')

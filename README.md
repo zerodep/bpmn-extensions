@@ -40,6 +40,10 @@ npm install @0dep/bpmn-extensions bpmn-elements
 - **`zeebe:calledElement`** — call activity target process id.
 - **`zeebe:loopCharacteristics`** — collection-based multi-instance (`inputCollection` / `inputElement`),
   sequential or parallel, with `outputElement` aggregated into the `outputCollection` array in input order.
+- **`zeebe:subscription`** — the referenced message's `correlationKey` is resolved when the catching
+  element (receive task, message event) starts waiting, and exposed on its content as
+  `subscription: { message, correlationKey }` — route an incoming message by matching it against the
+  waiting elements (`getPostponed()`) and signalling the right one.
 
 ## API
 
@@ -128,8 +132,12 @@ in `test/helpers/factory.js`, then run on a real bpmn-elements `Definition`. The
 the engine's `Logger` to the [`debug`](https://www.npmjs.com/package/debug) package, so
 `DEBUG=bpmn-extensions:* npm test` traces the engine and extensions (`:error:*` for errors only).
 
-See the `camunda8-bpmn-schemas` skill (`.claude/skills/`) for a reference of the `zeebe:*`
-extension elements and FEEL.
+# Ecosystem
+
+- [bpmn-engine](https://github.com/paed01/bpmn-engine) — BPMN 2.0 execution engine wrapping `bpmn-elements`; the batteries-included way to run, stop, resume, and recover flows.
+- [bpmn-middleware](https://github.com/zerodep/bpmn-middleware) — Express middleware exposing the engine over HTTP, with pluggable state storage.
+- [@onify/flow-extensions](https://github.com/onify/flow-extensions) — Onify Flow extensions for `bpmn-elements`.
+- [dmn-elements](https://github.com/zerodep/dmn-elements) — Executable DMN 1.3 decision elements; back a Business Rule Task with it (see [Conformance](/docs/Conformance.md#business-rule-task-and-dmn)).
 
 ## License
 

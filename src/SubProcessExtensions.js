@@ -1,4 +1,4 @@
-import { ElementExtensions } from './ElementExtensions.js';
+import { ElementExtensions, ON_ENTER_TAG, ON_EXECUTED_TAG, ON_START_TAG, ON_END_TAG } from './ElementExtensions.js';
 
 /**
  * Sub-process extensions.
@@ -14,14 +14,14 @@ export class SubProcessExtensions extends ElementExtensions {
     const listeners = this.extensions.listeners;
     const enterKey = message.fields.redelivered && message.fields.routingKey === 'run.start' ? 'activity.start' : 'activity.enter';
 
-    this.#subscribe(enterKey, (api) => this._onEnter(api), '0dep-bpmn-extensions:on-enter');
-    this.#subscribe('activity.execution.completed', (api) => this._onExecuted(api), '0dep-bpmn-extensions:on-executed');
+    this.#subscribe(enterKey, (api) => this._onEnter(api), ON_ENTER_TAG);
+    this.#subscribe('activity.execution.completed', (api) => this._onExecuted(api), ON_EXECUTED_TAG);
 
     if (listeners?.onStart) {
-      this.#subscribe('activity.start', (api) => this._onListener('start', api), '0dep-bpmn-extensions:on-start');
+      this.#subscribe('activity.start', (api) => this._onListener('start', api), ON_START_TAG);
     }
     if (listeners?.onEnd) {
-      this.#subscribe('activity.end', (api) => this._onListener('end', api), '0dep-bpmn-extensions:on-end');
+      this.#subscribe('activity.end', (api) => this._onListener('end', api), ON_END_TAG);
     }
   }
   #subscribe(routingKey, callback, consumerTag) {

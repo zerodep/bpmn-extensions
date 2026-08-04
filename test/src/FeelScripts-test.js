@@ -1,32 +1,30 @@
 import { FeelScripts } from '../../src/extensions/FeelScripts.js';
 
-Feature('FeelScripts edge cases', () => {
+describe('FeelScripts', () => {
   const scripts = FeelScripts();
 
-  Scenario('a script task without a zeebe:script extension', () => {
-    Then('getScript returns undefined (no FEEL script to run)', () => {
+  describe('a script task without a zeebe:script extension', () => {
+    it('getScript returns undefined (no FEEL script to run)', () => {
       const activity = { id: 'task', behaviour: {} };
       expect(scripts.getScript('feel', activity)).to.equal(undefined);
     });
 
-    And('an element with extension elements but no zeebe:Script also returns undefined', () => {
+    it('an element with extension elements but no zeebe:Script also returns undefined', () => {
       const activity = { id: 'task', behaviour: { extensionElements: { values: [{ $type: 'zeebe:TaskDefinition', type: 'x' }] } } };
       expect(scripts.getScript('feel', activity)).to.equal(undefined);
     });
   });
 
-  Scenario('a script task with a zeebe:script expression', () => {
-    Then('the returned script evaluates the FEEL expression against the environment variables', () => {
+  describe('a script task with a zeebe:script expression', () => {
+    it('the returned script evaluates the FEEL expression against the environment variables', () => {
       const activity = { id: 'task', behaviour: { extensionElements: { values: [{ $type: 'zeebe:Script', expression: '= a + b' }] } } };
       const script = scripts.getScript('feel', activity);
       let result;
       script.execute(/** @type {any} */ ({ environment: { variables: { a: 2, b: 3 } } }), (_, value) => (result = value));
       expect(result).to.equal(5);
     });
-  });
 
-  Scenario('a non-FEEL (static) script expression', () => {
-    Then('the raw value is returned without evaluation', () => {
+    it('a non-FEEL (static) expression is returned raw without evaluation', () => {
       const activity = { id: 'task', behaviour: { extensionElements: { values: [{ $type: 'zeebe:Script', expression: 'literal' }] } } };
       const script = scripts.getScript('feel', activity);
       let result;

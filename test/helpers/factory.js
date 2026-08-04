@@ -28,6 +28,7 @@ import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' 
  * @property {Record<string, any>} [form]
  * @property {boolean} [userTask]
  * @property {string} [documentation]
+ * @property {string} [messageRef] id of a message declared with `message()`
  */
 
 export class ProcessBuilder {
@@ -40,6 +41,7 @@ export class ProcessBuilder {
     this.id = id;
     this.documentation = documentation;
     this.flowElements = [];
+    this.messages = [];
   }
 
   #documentation(text) {
@@ -98,6 +100,27 @@ export class ProcessBuilder {
     return this.#extensionElements(values);
   }
 
+  /**
+   * Declare a definitions-level `bpmn:Message`. A `correlationKey` adds a `zeebe:subscription`.
+   * @param {string} id
+   * @param {string} name
+   * @param {{ correlationKey?: string }} [config]
+   */
+  message(id, name, { correlationKey } = {}) {
+    const attrs = { id, name };
+    if (correlationKey !== undefined) {
+      attrs.extensionElements = this.#extensionElements([this.moddle.create('zeebe:Subscription', { correlationKey })]);
+    }
+    this.messages.push(this.moddle.create('bpmn:Message', attrs));
+    return this;
+  }
+
+  #message(id) {
+    const message = this.messages.find((m) => m.id === id);
+    if (!message) throw new Error(`message <${id}> not found`);
+    return message;
+  }
+
   startEvent(id = 'start') {
     return this.#add(this.moddle.create('bpmn:StartEvent', { id }));
   }
@@ -115,6 +138,7 @@ export class ProcessBuilder {
     const extensionElements = this.#buildExtensions(config);
     const attrs = { id };
     if (config.documentation) attrs.documentation = this.#documentation(config.documentation);
+    if (config.messageRef) attrs.messageRef = this.#message(config.messageRef);
     if (extensionElements) attrs.extensionElements = extensionElements;
     return this.#add(this.moddle.create(type, attrs));
   }
@@ -133,6 +157,24 @@ export class ProcessBuilder {
 
   businessRuleTask(id, config = {}) {
     return this.task('bpmn:BusinessRuleTask', id, config);
+  }
+
+  receiveTask(id, config = {}) {
+    return this.task('bpmn:ReceiveTask', id, config);
+  }
+
+  /**
+   * Intermediate catch event with a message event definition.
+   * @param {string} id
+   * @param {string} messageId id of a message declared with `message()`
+   */
+  messageCatchEvent(id, messageId) {
+    return this.#add(
+      this.moddle.create('bpmn:IntermediateCatchEvent', {
+        id,
+        eventDefinitions: [this.moddle.create('bpmn:MessageEventDefinition', { messageRef: this.#message(messageId) })],
+      })
+    );
   }
 
   exclusiveGateway(id) {
@@ -179,7 +221,7 @@ export class ProcessBuilder {
     return this.moddle.create('bpmn:Definitions', {
       id: `${this.id}-definitions`,
       targetNamespace: 'http://bpmn.io/schema/bpmn',
-      rootElements: [process],
+      rootElements: [...this.messages, process],
     });
   }
 

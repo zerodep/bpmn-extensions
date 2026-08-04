@@ -18,8 +18,8 @@ declare module '@0dep/bpmn-extensions' {
 	 * A flow extension activated by bpmn-elements around an element's run.
 	 */
 	export type FlowExtension = {
-		activate: (message: any) => void;
-		deactivate: (message?: any) => void;
+		activate: (message: import("bpmn-elements").ElementBrokerMessage) => void;
+		deactivate: (message?: import("bpmn-elements").ElementBrokerMessage) => void;
 	};
 	/**
 	 * FEEL-aware expressions implementation for bpmn-elements.
@@ -78,7 +78,10 @@ declare module '@0dep/bpmn-extensions' {
 		type: string | undefined;
 		taskType: any;
 		activity: any;
-		execute(executionMessage: any, callback: any): any;
+		/**
+		 * Execute
+		 * */
+		execute(executionMessage: import("bpmn-elements").ElementBrokerMessage, callback: CallableFunction): any;
 	}
 	/**
 	 * Activity-level extensions.
@@ -88,29 +91,29 @@ declare module '@0dep/bpmn-extensions' {
 	 * proceeding — the same mechanism bpmn-elements uses for extension formatting.
 	 */
 	export class ElementExtensions {
-		constructor(activity: any);
-		activity: any;
-		formatQ: any;
-		extensions: {
-			format: FormatActivity | FormatProcess;
-			io?: IoMapping;
-			headers?: TaskHeaders;
-			properties?: Properties;
-			listeners?: ExecutionListeners;
-			form?: Form;
-			loop?: LoopCharacteristics;
-			script?: any;
-			calledDecision?: any;
-			Service?: Function;
-		};
-		activate(message: any): void;
+		
+		constructor(activity: import("bpmn-elements").Activity, context: import("bpmn-elements").ContextInstance);
+		activity: import("bpmn-elements").Activity;
+		formatQ: import("smqp").Queue | undefined;
+		
+		extensions: ExtensionHandlers;
+		/**
+		 * Activate extensions
+		 * */
+		activate(message: import("bpmn-elements").ElementBrokerMessage): void;
 		deactivate(): void;
-		/** @internal Shared with SubProcessExtensions. */
-		_onEnter(elementApi: any): Promise<void>;
-		/** @internal Shared with SubProcessExtensions. */
-		_onExecuted(elementApi: any): Promise<void>;
-		/** @internal Shared with SubProcessExtensions. */
-		_onListener(eventType: any, elementApi: any): Promise<void>;
+		/**
+		 * @internal Shared with SubProcessExtensions.
+		 * */
+		_onEnter(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Activity>): Promise<void>;
+		/**
+		 * @internal Shared with SubProcessExtensions.
+		 * */
+		_onExecuted(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Activity>): Promise<void>;
+		/**
+		 * @internal Shared with SubProcessExtensions.
+		 * */
+		_onListener(eventType: any, elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Activity>): Promise<void>;
 		#private;
 	}
 	/**
@@ -118,20 +121,11 @@ declare module '@0dep/bpmn-extensions' {
 	 * the result to the process variables.
 	 */
 	export class ProcessExtensions {
-		constructor(bp: any);
-		process: any;
-		extensions: {
-			format: FormatActivity | FormatProcess;
-			io?: IoMapping;
-			headers?: TaskHeaders;
-			properties?: Properties;
-			listeners?: ExecutionListeners;
-			form?: Form;
-			loop?: LoopCharacteristics;
-			script?: any;
-			calledDecision?: any;
-			Service?: Function;
-		};
+		
+		constructor(bp: import("bpmn-elements").Process);
+		process: import("bpmn-elements").Process;
+		
+		extensions: ExtensionHandlers;
 		activate(): void;
 		deactivate(): void;
 		#private;
@@ -146,6 +140,7 @@ declare module '@0dep/bpmn-extensions' {
 	 * sub-process's own id.
 	 */
 	export class SubProcessExtensions extends ElementExtensions {
+		activate(message: any): void;
 		#private;
 	}
 	/**
@@ -191,14 +186,32 @@ declare module '@0dep/bpmn-extensions' {
 		};
 	}
 	/**
+	 * The extension handlers assembled for one element.
+	 */
+	type ExtensionHandlers = {
+		format: FormatActivity | FormatProcess;
+		io?: IoMapping | undefined;
+		headers?: TaskHeaders | undefined;
+		properties?: Properties | undefined;
+		listeners?: ExecutionListeners | undefined;
+		form?: Form | undefined;
+		loop?: LoopCharacteristics | undefined;
+		script?: any;
+		calledDecision?: any;
+		Service?: Function | undefined;
+		subscription?: Subscription | undefined;
+	};
+	/**
 	 * Format an activity on enter from its behaviour and extensions: documentation and,
 	 * for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups).
 	 */
 	class FormatActivity {
-		constructor(activity: any, assignmentDefinition: any);
-		activity: any;
+		
+		constructor(activity: import("bpmn-elements").Activity, assignmentDefinition: any);
+		activity: import("bpmn-elements").Activity;
 		assignmentDefinition: any;
-		resolve(elementApi: any): {
+		
+		resolve(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Activity>): {
 			description: any;
 			assignee: any;
 			candidateUsers: any[];
@@ -209,9 +222,11 @@ declare module '@0dep/bpmn-extensions' {
 	 * Format a process on enter: documentation.
 	 */
 	class FormatProcess {
-		constructor(bp: any);
-		process: any;
-		resolve(elementApi: any): {
+		
+		constructor(bp: import("bpmn-elements").Process);
+		process: import("bpmn-elements").Process;
+		
+		resolve(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Process>): {
 			description: any;
 		};
 	}
@@ -326,6 +341,39 @@ declare module '@0dep/bpmn-extensions' {
 		 * @param baseScope process variables in scope for `outputElement`
 		 * */
 		aggregate(indexedOutput: Record<string, any> | undefined, baseScope: Record<string, any>): any[];
+	}
+	/**
+	 * `zeebe:subscription` — rides on the referenced `bpmn:Message`, not on the catching element.
+	 *
+	 * Resolves the correlation key in the activity's variable scope on enter and exposes it on the
+	 * element content as `subscription`. Correlation itself is the embedding application's job:
+	 * read the resolved key off the waiting activity (`getPostponed()` → `content.subscription`)
+	 * and signal the matching one (`api.signal(...)`).
+	 */
+	class Subscription {
+		/**
+		 * @param messageRef The serialized message reference
+		 * @param subscription The `zeebe:Subscription` behaviour
+		 */
+		constructor(messageRef: {
+			id: string;
+			name?: string;
+		}, subscription: {
+			correlationKey: string;
+		});
+		message: {
+			id: string;
+			name: string | undefined;
+		};
+		correlationKey: string;
+		
+		resolve(elementApi: import("bpmn-elements").IApi<any>): {
+			message: {
+				id: string;
+				name?: string;
+			};
+			correlationKey: any;
+		};
 	}
 
 	export {};

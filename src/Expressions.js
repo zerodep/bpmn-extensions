@@ -42,8 +42,5 @@ function resolveExpression(templatedString, context) {
  * (e.g. a multi-instance item).
  */
 function getScope(context) {
-  const environment = context && context.environment;
-  const variables = environment ? environment.variables : {};
-  const local = context && context.content && context.content.variables;
-  return { ...variables, ...local };
+  return { ...context?.environment?.variables, ...context?.content?.variables };
 }

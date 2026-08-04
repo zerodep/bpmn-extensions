@@ -43,7 +43,7 @@ export function evaluateFeel(expression, context) {
  * @returns {boolean} true only when the test is satisfied — an undecidable (null) test is false
  */
 export function evaluateFeelUnaryTest(expression, input, context) {
-  const { value } = unaryTest(stripFeel(expression), { ...(context || {}), '?': input });
+  const { value } = unaryTest(stripFeel(expression), { ...context, '?': input });
   return value === true;
 }
 

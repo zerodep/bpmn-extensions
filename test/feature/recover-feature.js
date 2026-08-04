@@ -78,6 +78,101 @@ Feature('Stop, recover and resume', () => {
     });
   });
 
+  Scenario('stop and resume on the same instance re-activates sub-process extensions exactly once', () => {
+    let definition;
+    let listenerCalls = 0;
+
+    Given('a process stopped while a sub process (with an end execution listener) waits on an inner user task', async () => {
+      const source = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="d">
+        <process id="p" isExecutable="true">
+          <startEvent id="start" /><sequenceFlow id="f1" sourceRef="start" targetRef="sub" />
+          <subProcess id="sub">
+            <extensionElements>
+              <zeebe:executionListeners><zeebe:executionListener eventType="end" type="audit" /></zeebe:executionListeners>
+            </extensionElements>
+            <startEvent id="ss" /><sequenceFlow id="sf1" sourceRef="ss" targetRef="inner" />
+            <userTask id="inner" /><sequenceFlow id="sf2" sourceRef="inner" targetRef="se" />
+            <endEvent id="se" />
+          </subProcess>
+          <sequenceFlow id="f2" sourceRef="sub" targetRef="end" /><endEvent id="end" />
+        </process>
+      </definitions>`;
+      definition = await createDefinition(source, {
+        services: {
+          audit: (_api, _options, callback) => {
+            listenerCalls++;
+            callback(null);
+          },
+        },
+      });
+      await new Promise((resolve) => {
+        definition.once('stop', resolve);
+        definition.once('activity.wait', () => definition.stop());
+        definition.run();
+      });
+    });
+
+    When('the same instance is resumed and the inner task signalled', async () => {
+      definition.on('activity.wait', (api) => api.signal());
+      await new Promise((resolve, reject) => {
+        definition.once('leave', resolve);
+        definition.once('error', reject);
+        definition.resume();
+      });
+    });
+
+    Then('the definition completes', () => {
+      expect(definition.counters.completed).to.equal(1);
+    });
+
+    And('the end execution listener ran exactly once — deactivate cancelled what activate subscribed', () => {
+      expect(listenerCalls).to.equal(1);
+    });
+  });
+
+  Scenario('stopped on the sub-process start event, the same instance resumes with a redelivered run.start', () => {
+    let definition;
+
+    Given('a process with a sub process (io output mapping) stopped on the sub process start event', async () => {
+      const source = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="d">
+        <process id="p" isExecutable="true">
+          <startEvent id="start" /><sequenceFlow id="f1" sourceRef="start" targetRef="sub" />
+          <subProcess id="sub">
+            <extensionElements>
+              <zeebe:ioMapping><zeebe:output source="= 41 + 1" target="answer" /></zeebe:ioMapping>
+            </extensionElements>
+            <startEvent id="ss" /><sequenceFlow id="sf1" sourceRef="ss" targetRef="inner" />
+            <userTask id="inner" /><sequenceFlow id="sf2" sourceRef="inner" targetRef="se" />
+            <endEvent id="se" />
+          </subProcess>
+          <sequenceFlow id="f2" sourceRef="sub" targetRef="end" /><endEvent id="end" />
+        </process>
+      </definitions>`;
+      definition = await createDefinition(source, {});
+      await new Promise((resolve) => {
+        definition.once('stop', resolve);
+        definition.on('activity.start', (api) => {
+          if (api.id === 'sub') definition.stop();
+        });
+        definition.run();
+      });
+    });
+
+    When('the same instance is resumed and the inner task signalled', async () => {
+      definition.on('activity.wait', (api) => api.signal());
+      await new Promise((resolve, reject) => {
+        definition.once('leave', resolve);
+        definition.once('error', reject);
+        definition.resume();
+      });
+    });
+
+    Then('the sub-process extensions re-activated on the redelivered run.start and the io output is applied', () => {
+      expect(definition.counters.completed).to.equal(1);
+      expect(definition.environment.output).to.deep.equal({ answer: 42 });
+    });
+  });
+
   Scenario('a sub process waiting on an inner user task survives recovery', () => {
     let result;
 

@@ -21,9 +21,11 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   marks the bundle as CommonJS — required because the root package is `type: module`.
 - **Types**: generated from JSDoc with **dts-buddy** into `types/index.d.ts` (`npm run types`,
   also run by `prepack`; `tsconfig.json` is dts-buddy's config). `types/` is gitignored like `dist/`.
-  Keep the public surface clean by **not** leaking the internal extension classes: `extensions()`
-  has an explicit `@returns {FlowExtension}` (a typedef of `{ activate, deactivate }`), so the
-  `ElementExtensions`/`ProcessExtensions`/etc. shapes never reach the `.d.ts`. dts-buddy does **not**
+  Keep the `extensions()` entry point decoupled from the class shapes: it has an explicit
+  `@returns {FlowExtension}` (a typedef of `{ activate, deactivate }`), so consumers program against
+  that contract. The `ElementExtensions`/`ProcessExtensions`/`SubProcessExtensions` classes **are**
+  exported from `index.js` and therefore do appear in the `.d.ts` (including the `ExtensionHandlers`
+  typedef their `extensions` member carries). dts-buddy does **not**
   honour `stripInternal`, so don't rely on `@internal` to hide members — use `#private` methods
   (which TS omits) or keep them off the public return types. **JSDoc must reference real
   bpmn-elements type names** or `tsc` rejects the generated `.d.ts` (`TS2694`): the element api is
@@ -36,7 +38,9 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   subclasses, so these stay `_`-prefixed and tagged `@internal`.
 - **Node 22** (`engines: ">=22"`, `.node-version`). Use `fnm use` (the dev uses fnm). Tests import
   the moddle schema with `import ... with { type: 'json' }` (eslint `ecmaVersion: 'latest'`).
-- **Tests**: BDD with **mocha-cakes-2** (`Feature/Scenario/Given/When/Then`). Flows under test are
+- **Tests**: feature tests are BDD with **mocha-cakes-2** (`Feature/Scenario/Given/When/Then`);
+  the `test/src` **unit tests use plain mocha `describe`/`it`** (the mocha-cakes-2 UI keeps both, so
+  one `.mocharc.cjs` `ui` setting covers the whole suite). Flows under test are
   authored programmatically with **bpmn-moddle** via `ProcessBuilder` (`test/helpers/factory.js`),
   then run on a **real bpmn-elements `Definition`** (not bpmn-engine) via `test/helpers/testHelpers.js`.
   `expect` is a **global** — `.mocharc.cjs` does `require: 'chai/register-expect.js'`, so test files
@@ -69,7 +73,8 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   the XML tag is lowerCase (`<zeebe:taskDefinition>`). Switch on PascalCase in `getExtensions.js`.
 - **Extension contract**: `extensions(element, context)` returns an object with `activate(message)`
   / `deactivate(message)`; bpmn-elements calls these for activities **and processes**
-  (process activation needs **bpmn-elements >= 18.0.3** — the peer dep floor). `ProcessExtensions`
+  (process activation needs **bpmn-elements >= 18.0.3**; the peer dep floor is **>= 18.0.12**,
+  set by same-instance resume — see Stop / recover / resume). `ProcessExtensions`
   subscribes to `process.enter` in `activate()` (called on `run.enter`, just before the event is
   published). Activity formatting and async work (io, execution listeners) are injected through the
   activity's `format-run-q` queue so the activity waits for them — see `ElementExtensions`.
@@ -107,10 +112,14 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   variables. Tests: `io-propagation-feature.js` + `call-activity-io.bpmn` / `sub-process-io.bpmn`.
 - **Sequence flow conditions** need no custom flow class: a `conditionExpression` body of `= ...`
   with no language flows through bpmn-elements' default `ExpressionCondition` into `FeelExpressions`.
-- **Stop / recover / resume** works: on resume, activities re-activate with a redelivered `run.start`
-  message and the extensions re-format (hence the `message.fields.redelivered` branch in
-  `ElementExtensions`/`SubProcessExtensions.activate`). `recover-feature.js` covers it — a user task,
-  io output preserved across a stop, and a sub process. Recovery may re-invoke a service that had
+- **Stop / recover / resume** works: on resume, an activity stopped mid-execution re-activates with
+  a redelivered `run.execute`; one stopped between start and execute (e.g. on the start event, or
+  mid start-listener) re-activates with a redelivered `run.start` and re-formats — hence the
+  `message.fields.redelivered` branch in `ElementExtensions`/`SubProcessExtensions.activate`.
+  Same-instance resume of those in-between states needs **bpmn-elements >= 18.0.12** (earlier
+  versions stalled or skipped re-activation — the peer dep floor and the devDep are set
+  accordingly; recover-into-fresh was always fine). `recover-feature.js` covers it — a user task, io output preserved across a stop,
+  a sub process, and same-instance stop/resume (mid-wait and on the start event). Recovery may re-invoke a service that had
   completed before the stop, so workers should be idempotent.
 - **Execution listeners** are job workers, and they **block**: the activity waits (via the
   `format-run-q` mechanism in `ElementExtensions._onListener`) for a start listener to finish before
@@ -124,6 +133,18 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   failing. Start small, mirroring `@onify/flow-extensions`: it logs `logger.error` on caught
   execution-listener errors (and timer-parse errors). The test harness wires `Logger` to the
   **`debug`** package, so `DEBUG=bpmn-extensions:*` (or `:error:*`) traces the engine and extensions.
+- **Message subscription** (`zeebe:subscription`): correlation is **app-layer routing** — we only
+  resolve and expose. The subscription rides on the referenced `bpmn:Message` element (not the
+  catching element); the instantiated bpmn-elements `Message` strips `behaviour`, so
+  `getExtensions` reads it off the raw serialized context — `context.definitionContext` — which is
+  the reason `getExtensions`/`ElementExtensions` take the context argument.
+  The `correlationKey` FEEL is resolved in the activity scope on enter and exposed as
+  content `subscription: { message: { id, name }, correlationKey }` (visible on `activity.wait` /
+  `getPostponed()`); the app matches an incoming message against it and signals that specific api.
+  Delivery filtering stays out of bpmn-elements — broadcast signal matches by message id only, the
+  targeted per-execution api path is the discriminator. Known edges (fine, forgiving): a top-level
+  message start event resolves against an empty scope → `undefined`; a multi-instance receive task
+  resolves once on enter, not per iteration. Tests: `message-feature.js`.
 - **Script tasks** (`zeebe:script`) run through the bpmn-elements `scripts` handler, not a Service:
   `ScriptTaskBehaviour` calls `environment.getScript(scriptFormat, activity)`. `FeelScripts()`
   ignores the (absent) script format, reads the FEEL `expression` off the element, and evaluates it.
@@ -168,5 +189,5 @@ result scope, in input order.
 
 ## Not yet implemented
 
-User-task priority/schedule, message `zeebe:subscription`. The
+User-task priority/schedule. The
 `zeebe-bpmn-moddle` schema covers these — extend `getExtensions.js`/`extendFn` and add a module per element.

@@ -12,8 +12,8 @@ export { ServiceError, FormatError } from './Errors.js';
 /**
  * A flow extension activated by bpmn-elements around an element's run.
  * @typedef {object} FlowExtension
- * @property {(message: any) => void} activate
- * @property {(message?: any) => void} deactivate
+ * @property {(message: import('bpmn-elements').ElementBrokerMessage) => void} activate
+ * @property {(message?: import('bpmn-elements').ElementBrokerMessage) => void} deactivate
  */
 
 /**

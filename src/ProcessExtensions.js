@@ -6,8 +6,12 @@ import { getExtensions } from './getExtensions.js';
  * the result to the process variables.
  */
 export class ProcessExtensions {
+  /**
+   * @param {import('bpmn-elements').Process} bp
+   */
   constructor(bp) {
     this.process = bp;
+    /** @type {import('./getExtensions.js').ExtensionHandlers} */
     this.extensions = getExtensions(bp);
   }
   activate() {
@@ -21,6 +25,9 @@ export class ProcessExtensions {
   deactivate() {
     this.process.broker.cancel('0dep-bpmn-extensions:on-enter');
   }
+  /**
+   * @param {import('bpmn-elements').IApi<import('bpmn-elements').Process>} elementApi
+   */
   #onEnter(elementApi) {
     try {
       // bpmn-elements (>=18.0.4) forwards a call activity's formatted input — its io mapping plus,
