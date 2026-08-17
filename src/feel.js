@@ -58,3 +58,18 @@ export function resolveValue(value, context) {
   if (isFeelExpression(value)) return evaluateFeel(value, context);
   return value;
 }
+
+/**
+ * Build the FEEL evaluation scope for an environment. The environment services are exposed
+ * under `services`, callable as FEEL functions (e.g. `services.isEligible(order)`) — resume-safe,
+ * since the host re-supplies services at recover time, unlike functions smuggled through
+ * variables, which JSON state serialization drops. The environment variables form the base
+ * scope, overlaid with any local variables (a job result, element-local variables such as a
+ * multi-instance item); a variable named `services` shadows the overlay.
+ * @param {import('bpmn-elements').Environment} [environment]
+ * @param {Record<string, any>} [localVariables] scope-local overlay
+ * @returns {Record<string, any>}
+ */
+export function getFeelScope(environment, localVariables) {
+  return { services: environment?.services, ...environment?.variables, ...localVariables };
+}

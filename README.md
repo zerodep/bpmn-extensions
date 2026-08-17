@@ -21,6 +21,12 @@ npm install @0dep/bpmn-extensions bpmn-elements
 
 - **FEEL expressions** — a `FeelExpressions()` adapter resolves FEEL (`= order.total > 100`)
   everywhere bpmn-elements resolves an expression, including sequence flow conditions.
+- **Environment services in FEEL scope** — every FEEL expression can call the environment services
+  as functions, namespaced under `services` (e.g. a condition `= services.isEligible(order)`).
+  This strays from strict Camunda 8 conformance on purpose: unlike functions smuggled through
+  variables, services survive `getState()`/`recover()` — state is JSON-serialized (functions are
+  dropped), while services are re-supplied by the host at recover time — so service-backed
+  conditions are resume-safe. A variable named `services` shadows the overlay.
 - **`zeebe:script`** — a `FeelScripts()` adapter runs a script task's FEEL `expression` and assigns
   the result to its `resultVariable`.
 - **`zeebe:taskDefinition`** — maps a service task's job `type` to an environment service (job worker).
@@ -52,7 +58,8 @@ npm install @0dep/bpmn-extensions bpmn-elements
   bpmn-elements expects on the behaviour: call activity process id and multi-instance collection).
 - `FeelExpressions()` — a bpmn-elements `IExpressions` implementation backed by FEEL.
 - `FeelScripts()` — a bpmn-elements `scripts` implementation that runs `zeebe:script` FEEL expressions.
-- FEEL helpers: `isFeelExpression`, `stripFeel`, `evaluateFeel`, `evaluateFeelUnaryTest`, `resolveValue`.
+- FEEL helpers: `isFeelExpression`, `stripFeel`, `evaluateFeel`, `evaluateFeelUnaryTest`, `resolveValue`,
+  `getFeelScope` (the scope every expression is evaluated in: `services` + environment variables + local overlay).
 - `JobService`, `ServiceError`, `FormatError`.
 
 ## Usage

@@ -1,4 +1,4 @@
-import { resolveValue } from '../feel.js';
+import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
  * `zeebe:ioMapping`.
@@ -28,7 +28,7 @@ export class IoMapping {
    * @param {import('bpmn-elements').IApi<any>} elementApi
    */
   getInput(elementApi) {
-    const scope = elementApi.environment.variables;
+    const scope = getFeelScope(elementApi.environment);
     const result = {};
     for (const { source, target } of this.inputParameters) {
       if (!target) continue;
@@ -42,7 +42,7 @@ export class IoMapping {
    * @param {Record<string, any>} [jobResult] Variables produced by the job
    */
   getOutput(elementApi, jobResult) {
-    const scope = { ...elementApi.environment.variables, ...jobResult };
+    const scope = getFeelScope(elementApi.environment, jobResult);
     const result = {};
     for (const { source, target } of this.outputParameters) {
       if (!target) continue;

@@ -1,4 +1,4 @@
-import { resolveValue } from '../feel.js';
+import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
  * Format an activity on enter from its behaviour and extensions: documentation and,
@@ -17,7 +17,7 @@ export class FormatActivity {
    * @param {import('bpmn-elements').IApi<import('bpmn-elements').Activity>} elementApi
    */
   resolve(elementApi) {
-    const scope = elementApi.environment.variables;
+    const scope = getFeelScope(elementApi.environment);
     const result = {};
 
     const documentation = this.activity.behaviour.documentation;
@@ -58,7 +58,7 @@ export class FormatProcess {
     const documentation = this.process.behaviour.documentation;
     if (documentation && !elementApi.content.description) {
       const text = documentation[0]?.text;
-      if (text) result.description = resolveValue(text, elementApi.environment.variables);
+      if (text) result.description = resolveValue(text, getFeelScope(elementApi.environment));
     }
     return result;
   }

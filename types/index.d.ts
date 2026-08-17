@@ -171,6 +171,16 @@ declare module '@0dep/bpmn-extensions' {
 	 * @param context Variables in scope for FEEL evaluation
 	 * */
 	export function resolveValue(value: any, context?: Record<string, any>): any;
+	/**
+	 * Build the FEEL evaluation scope for an environment. The environment services are exposed
+	 * under `services`, callable as FEEL functions (e.g. `services.isEligible(order)`) — resume-safe,
+	 * since the host re-supplies services at recover time, unlike functions smuggled through
+	 * variables, which JSON state serialization drops. The environment variables form the base
+	 * scope, overlaid with any local variables (a job result, element-local variables such as a
+	 * multi-instance item); a variable named `services` shadows the overlay.
+	 * @param localVariables scope-local overlay
+	 * */
+	export function getFeelScope(environment?: import("bpmn-elements").Environment, localVariables?: Record<string, any>): Record<string, any>;
 	export class ServiceError extends Error {
 		constructor(jobType: any);
 		code: string;
@@ -338,7 +348,7 @@ declare module '@0dep/bpmn-extensions' {
 		get hasOutputCollection(): boolean;
 		/**
 		 * @param indexedOutput bpmn-elements index-keyed instance outputs
-		 * @param baseScope process variables in scope for `outputElement`
+		 * @param baseScope base scope for `outputElement` (services + process variables)
 		 * */
 		aggregate(indexedOutput: Record<string, any> | undefined, baseScope: Record<string, any>): any[];
 	}

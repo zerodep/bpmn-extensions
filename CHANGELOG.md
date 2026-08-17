@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+## v0.0.4 - 2026-08-17
+
+- Environment services are in FEEL scope under `services`, callable as functions in every expression (conditions, io mapping, scripts, correlation keys, ...) — e.g. `= services.isEligible(order)`. Unlike functions passed through variables, services survive `getState()`/`recover()`, so they are resume-safe. A variable named `services` shadows the overlay. New exported helper `getFeelScope(environment, localVariables)` builds the scope.
+- `FeelScripts` `getScript` declares `Script | undefined` (bpmn-elements fixed the upstream type).
+
 ## v0.0.3 - 2026-07-26
 
 - Message `zeebe:subscription`: the correlation key is resolved on enter and exposed on the waiting element content as `subscription: { message, correlationKey }`, so the embedding application can route an incoming message to the right waiting activity.

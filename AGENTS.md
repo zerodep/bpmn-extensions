@@ -14,6 +14,23 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   whatever extension data is present, resolve it, and run. Do not add checks that reject a model
   for missing/contradictory configuration (e.g. a user task with no form or implementation) — that
   is the modeler's/platform's job. Missing data just means the corresponding behaviour is skipped.
+- **Environment services are in FEEL scope, namespaced under `services`.** Every FEEL scope is
+  built by **`getFeelScope(environment, localVariables)` in `feel.js`** (exported; a deliberate
+  exception to the inline-it rule — the overlay must stay uniform across all sites, so a new
+  resolution site must use it): `{ services: environment.services, ...variables, ...localVariables }`
+  — services first, so a variable named `services` shadows the overlay (forgiving). This
+  deliberately strays from strict Camunda 8 conformance (Zeebe FEEL has no user-defined
+  functions): functions smuggled through variables don't survive `getState()`/`recover()` (state
+  is JSON-serialized, functions dropped), whereas services are re-supplied by the host at recover
+  time — so service-backed condition/mapping functions are resume-safe. It also restores parity
+  with the bpmn-elements default `${environment.services.x()}` expressions that switching to FEEL
+  dropped. The `services.` prefix keeps the divergence explicit and greppable. feelin invokes
+  plain JS functions with both positional and named FEEL arguments (named args map by JS parameter
+  name); a missing service yields `null` with a warning, not a throw. Call sites:
+  `Expressions.resolveExpression`, `IoMapping` in/out, `Form`, `Properties`, `TaskDefinition`
+  (job type), `Subscription` (correlation key), `formatters`, `FeelScripts`, and the
+  `LoopCharacteristics.aggregate` base scope. Tests: `services-in-scope-feature.js` (including
+  stop → JSON-serialize state → recover with re-supplied services) + `Expressions-test.js`.
 - **Package name**: `@0dep/bpmn-extensions`.
 - **Module format**: dual. Source is ESM (`src/`, `type: module`); the CommonJS build is bundled
   with **rollup** into `dist/`. `feelin` is ESM-only so it is **bundled into the CJS output**;
@@ -53,9 +70,10 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   `src/` JSDoc in as well. Conventions this forces: a service function that reads `this` annotates
   `/** @this {import('bpmn-elements').Activity} */` (that is what `serviceFn.call(activity, ...)`
   binds); minimal unit-test fakes are cast with `/** @type {any} */ (...)` rather than fleshed out.
-  Known upstream (bpmn-elements) type gaps worked around here: `IScripts.getScript` is declared to
-  return a bare `Script` (ours can return undefined — any-cast in `FeelScripts`), and the
-  `services` record's `CallableFunction` says nothing about `this`.
+  Known upstream (bpmn-elements) type gap worked around here: the `services` record's
+  `CallableFunction` says nothing about `this`. (The former `IScripts.getScript` gap is fixed
+  upstream — since at least 18.0.15 it declares `Script | undefined`, so `FeelScripts` returns
+  undefined honestly, no cast.)
 - **README examples are executed** with **texample** (`npm run test:md`, part of `posttest` and
   `test:lcov`). It runs every ` ```javascript ` block and **ignores** ` ```js ` blocks — so a
   runnable, self-contained example uses `javascript`; a non-runnable snippet uses `js`. The example

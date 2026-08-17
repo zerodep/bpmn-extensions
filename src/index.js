@@ -5,7 +5,7 @@ import { SubProcessExtensions } from './SubProcessExtensions.js';
 export { ElementExtensions, ProcessExtensions, SubProcessExtensions };
 export { FeelExpressions } from './Expressions.js';
 export { FeelScripts } from './extensions/FeelScripts.js';
-export { isFeelExpression, stripFeel, evaluateFeel, evaluateFeelUnaryTest, resolveValue } from './feel.js';
+export { isFeelExpression, stripFeel, evaluateFeel, evaluateFeelUnaryTest, resolveValue, getFeelScope } from './feel.js';
 export { JobService } from './extensions/TaskDefinition.js';
 export { ServiceError, FormatError } from './Errors.js';
 

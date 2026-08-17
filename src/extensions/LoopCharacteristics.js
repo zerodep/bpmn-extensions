@@ -21,7 +21,7 @@ export class LoopCharacteristics {
   }
   /**
    * @param {Record<string, any>|undefined} indexedOutput bpmn-elements index-keyed instance outputs
-   * @param {Record<string, any>} baseScope process variables in scope for `outputElement`
+   * @param {Record<string, any>} baseScope base scope for `outputElement` (services + process variables)
    * @returns {any[]}
    */
   aggregate(indexedOutput, baseScope) {

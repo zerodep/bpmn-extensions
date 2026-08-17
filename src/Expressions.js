@@ -1,4 +1,4 @@
-import { isFeelExpression, evaluateFeel } from './feel.js';
+import { isFeelExpression, evaluateFeel, getFeelScope } from './feel.js';
 
 /**
  * FEEL-aware expressions implementation for bpmn-elements.
@@ -27,20 +27,12 @@ function hasExpression(text) {
 
 /**
  * Resolve a templated string. Static literals are returned as-is; FEEL expressions are
- * evaluated against the environment variables (overlaid with any element-local variables).
+ * evaluated in the environment scope (see `getFeelScope`), overlaid with any element-local
+ * variables carried on the message content (e.g. a multi-instance item).
  * @param {string} templatedString
  * @param {{ environment?: import('bpmn-elements').Environment, content?: any }} [context]
  */
 function resolveExpression(templatedString, context) {
   if (!isFeelExpression(templatedString)) return templatedString;
-  return evaluateFeel(templatedString, getScope(context));
-}
-
-/**
- * Build the FEEL variable scope from a resolution context. Process/definition variables form
- * the base scope, overlaid with any local variables carried on the element message content
- * (e.g. a multi-instance item).
- */
-function getScope(context) {
-  return { ...context?.environment?.variables, ...context?.content?.variables };
+  return evaluateFeel(templatedString, getFeelScope(context?.environment, context?.content?.variables));
 }

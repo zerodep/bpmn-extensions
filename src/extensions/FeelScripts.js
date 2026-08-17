@@ -1,4 +1,4 @@
-import { isFeelExpression, evaluateFeel } from '../feel.js';
+import { isFeelExpression, evaluateFeel, getFeelScope } from '../feel.js';
 
 /**
  * A bpmn-elements `scripts` implementation for script tasks.
@@ -22,12 +22,12 @@ class FeelScriptRegistry {
   /**
    * @param {string} _scriptFormat
    * @param {{ id: string, [x: string]: any }} activity
-   * @returns {import('bpmn-elements').Script} the FEEL script, or undefined when the activity
-   *   has no `zeebe:script` — bpmn-elements handles that, but `IScripts` declares a bare `Script`
+   * @returns {import('bpmn-elements').Script | undefined} the FEEL script, or undefined when
+   *   the activity has no `zeebe:script`
    */
   getScript(_scriptFormat, activity) {
     const expression = getScriptExpression(activity);
-    if (expression === undefined) return /** @type {any} */ (undefined);
+    if (expression === undefined) return undefined;
     return new FeelScript(expression);
   }
 }
@@ -38,7 +38,7 @@ class FeelScript {
   }
   execute(scope, callback) {
     try {
-      const value = isFeelExpression(this.expression) ? evaluateFeel(this.expression, { ...scope.environment.variables }) : this.expression;
+      const value = isFeelExpression(this.expression) ? evaluateFeel(this.expression, getFeelScope(scope.environment)) : this.expression;
       callback(null, value);
     } catch (err) {
       callback(err);

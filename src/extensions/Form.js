@@ -1,4 +1,4 @@
-import { resolveValue } from '../feel.js';
+import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
  * `zeebe:formDefinition`.
@@ -13,7 +13,7 @@ export class Form {
     this.formDefinition = formDefinition;
   }
   resolve(elementApi) {
-    const scope = elementApi.environment.variables;
+    const scope = getFeelScope(elementApi.environment);
     const { formId, formKey, externalReference, bindingType, versionTag } = this.formDefinition;
     return {
       ...(formId !== undefined && { formId: resolveValue(formId, scope) }),

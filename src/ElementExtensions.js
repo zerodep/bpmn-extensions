@@ -1,4 +1,5 @@
 import { getExtensions } from './getExtensions.js';
+import { getFeelScope } from './feel.js';
 
 const SUBPROCESS_TYPES = new Set(['bpmn:SubProcess', 'bpmn:AdHocSubProcess', 'bpmn:Transaction']);
 
@@ -134,7 +135,7 @@ export class ElementExtensions {
 
     // Multi-instance: aggregate the per-instance outputs into the `outputCollection` array.
     if (loop?.hasOutputCollection) {
-      const output = { [loop.outputCollection]: loop.aggregate(jobResult, elementApi.environment.variables) };
+      const output = { [loop.outputCollection]: loop.aggregate(jobResult, getFeelScope(elementApi.environment)) };
       this.#assignOutput(elementApi, output);
       return { output };
     }

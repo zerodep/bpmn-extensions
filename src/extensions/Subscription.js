@@ -1,4 +1,4 @@
-import { resolveValue } from '../feel.js';
+import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
  * `zeebe:subscription` — rides on the referenced `bpmn:Message`, not on the catching element.
@@ -24,7 +24,7 @@ export class Subscription {
   resolve(elementApi) {
     return {
       message: this.message,
-      correlationKey: resolveValue(this.correlationKey, elementApi.environment.variables),
+      correlationKey: resolveValue(this.correlationKey, getFeelScope(elementApi.environment)),
     };
   }
 }

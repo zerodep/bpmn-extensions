@@ -1,4 +1,4 @@
-import { resolveValue } from '../feel.js';
+import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
  * `zeebe:properties`.
@@ -11,7 +11,7 @@ export class Properties {
     this.properties = properties.properties || [];
   }
   resolve(elementApi) {
-    const scope = elementApi.environment.variables;
+    const scope = getFeelScope(elementApi.environment);
     const result = {};
     for (const { name, value } of this.properties) {
       if (name === undefined) continue;

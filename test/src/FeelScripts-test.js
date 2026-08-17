@@ -19,6 +19,7 @@ describe('FeelScripts', () => {
     it('the returned script evaluates the FEEL expression against the environment variables', () => {
       const activity = { id: 'task', behaviour: { extensionElements: { values: [{ $type: 'zeebe:Script', expression: '= a + b' }] } } };
       const script = scripts.getScript('feel', activity);
+      if (!script) throw new Error('expected a script');
       let result;
       script.execute(/** @type {any} */ ({ environment: { variables: { a: 2, b: 3 } } }), (_, value) => (result = value));
       expect(result).to.equal(5);
@@ -27,6 +28,7 @@ describe('FeelScripts', () => {
     it('a non-FEEL (static) expression is returned raw without evaluation', () => {
       const activity = { id: 'task', behaviour: { extensionElements: { values: [{ $type: 'zeebe:Script', expression: 'literal' }] } } };
       const script = scripts.getScript('feel', activity);
+      if (!script) throw new Error('expected a script');
       let result;
       script.execute(/** @type {any} */ ({ environment: { variables: {} } }), (_, value) => (result = value));
       expect(result).to.equal('literal');

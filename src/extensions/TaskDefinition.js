@@ -1,5 +1,5 @@
 import { ServiceError } from '../Errors.js';
-import { resolveValue } from '../feel.js';
+import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
  * `zeebe:taskDefinition`.
@@ -34,7 +34,7 @@ JobService.prototype.execute = function execute(executionMessage, callback) {
 
   let jobType;
   try {
-    jobType = resolveValue(this.taskType, environment.variables);
+    jobType = resolveValue(this.taskType, getFeelScope(environment));
   } catch (err) {
     return callback(err);
   }
