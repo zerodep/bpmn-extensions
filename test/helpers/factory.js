@@ -177,6 +177,24 @@ export class ProcessBuilder {
     );
   }
 
+  /**
+   * Intermediate catch event with a conditional event definition.
+   * @param {string} id
+   * @param {string} condition FEEL condition, e.g. `= approved`
+   */
+  conditionalCatchEvent(id, condition) {
+    return this.#add(
+      this.moddle.create('bpmn:IntermediateCatchEvent', {
+        id,
+        eventDefinitions: [
+          this.moddle.create('bpmn:ConditionalEventDefinition', {
+            condition: this.moddle.create('bpmn:FormalExpression', { body: condition }),
+          }),
+        ],
+      })
+    );
+  }
+
   exclusiveGateway(id) {
     return this.#add(this.moddle.create('bpmn:ExclusiveGateway', { id }));
   }

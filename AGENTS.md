@@ -103,6 +103,13 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   sub-process format queue, **stalling the sub-process** (it sits `executing` with nothing pending
   inside). The fix mirrors `@onify`: subscribe on the broker and filter to `activity.id ===
 message.content.id`. Regression test: the `mother-of-all-feel` resource in `resources-feature.js`.
+- **Transactions with compensation need no extension-side support** — cancel end event → transaction
+  cancel → compensate boundary event → association → `isForCompensation` handler is all bpmn-elements
+  machinery. The handler is a regular activity, so a `zeebe:taskDefinition` on it runs as a job worker,
+  and the shared sub-process scope means output-mapped variables from the compensated task (e.g. a
+  reservation id) are in the handler's scope. Test: `transaction-feature.js` +
+  `transaction-compensation.bpmn` (cancel route guarded by a `= services.takeOnce()` condition, retry
+  via a cancel boundary event looping back to the transaction).
 - **Environments are cloned per scope.** Within one process, all activities share one environment,
   so `environment.assignVariables(...)` propagates output-mapped variables to downstream FEEL. The
   definition has a _separate_ environment; process `environment.output` is bubbled up to
@@ -163,6 +170,14 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   targeted per-execution api path is the discriminator. Known edges (fine, forgiving): a top-level
   message start event resolves against an empty scope → `undefined`; a multi-instance receive task
   resolves once on enter, not per iteration. Tests: `message-feature.js`.
+- **Conditional events need no extension-side support** — bpmn-elements' `ConditionalEventDefinition`
+  evaluates the `bpmn:condition` on enter and re-evaluates it on **each signal** (never on variable
+  change — something must nudge the waiting event). A `= ...` condition body flows through
+  `FeelExpressions` (`Environment.resolveExpression` injects the environment), so process variables
+  and `services.` are in scope — a service-backed condition (`= services.isReady()`) is consulted
+  per signal and is resume-safe. Each evaluation publishes `activity.condition` with
+  `content.conditionResult`. Test: `conditional-event-feature.js` — the parallel-approval scenario
+  runs `conditional-event.bpmn`, the rest build with `ProcessBuilder.conditionalCatchEvent`.
 - **Script tasks** (`zeebe:script`) run through the bpmn-elements `scripts` handler, not a Service:
   `ScriptTaskBehaviour` calls `environment.getScript(scriptFormat, activity)`. `FeelScripts()`
   ignores the (absent) script format, reads the FEEL `expression` off the element, and evaluates it.
@@ -179,6 +194,9 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
 - **No `helpers`/`utils` files.** Inline trivial logic (e.g. `environment.variables`, the io-mapping
   `setPath`) at its single use site rather than extracting a shared helper. Prefer duplication over a
   catch-all utils module — DRY is not a goal here.
+- **Every `test/resources/*.bpmn` must include the BPMN DI parts** (`bpmndi:BPMNDiagram` with
+  shapes/edges for all flow elements) so the resource can be opened and displayed in a modeler —
+  hand-authored resources too, not only modeler exports.
 - `test/feature/*-feature.js` (behavioural BDD specs, `-feature.js` suffix), `test/helpers/`, and
   `test/src/<File>-test.js` (unit tests of a single `src` module — for real edge cases / guards
   that are awkward to reach through a full flow, e.g. a header with no key, a non-wrapped
