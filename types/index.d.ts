@@ -4,8 +4,12 @@ declare module '@0dep/bpmn-extensions' {
 	 * */
 	/**
 	 * Flow extensions factory. Pass it to the engine via the environment `extensions` option.
+	 *
+	 * Returns undefined for an element that carries no zeebe extension data and nothing else to
+	 * format (no documentation, not a call activity) — bpmn-elements skips falsy extensions, so
+	 * plain elements run untouched, with no broker subscriptions or format-queue traffic.
 	 * */
-	export function extensions(element: import("bpmn-elements").Activity | import("bpmn-elements").Process, context: import("bpmn-elements").ContextInstance): FlowExtension;
+	export function extensions(element: import("bpmn-elements").Activity | import("bpmn-elements").Process, context: import("bpmn-elements").ContextInstance): FlowExtension | undefined;
 	/**
 	 * Behaviour extend function for moddle-context-serializer.
 	 *
@@ -210,22 +214,33 @@ declare module '@0dep/bpmn-extensions' {
 		calledDecision?: any;
 		Service?: Function | undefined;
 		subscription?: Subscription | undefined;
+		/**
+		 * no zeebe extension data found and nothing to format — the element needs no extension
+		 */
+		isEmpty?: boolean | undefined;
 	};
 	/**
 	 * Format an activity on enter from its behaviour and extensions: documentation and,
-	 * for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups).
+	 * for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups),
+	 * `zeebe:priorityDefinition` (priority), and `zeebe:taskSchedule` (due/follow-up date).
 	 */
 	class FormatActivity {
 		
-		constructor(activity: import("bpmn-elements").Activity, assignmentDefinition: any);
+		constructor(activity: import("bpmn-elements").Activity, assignmentDefinition: any, priorityDefinition?: any, taskSchedule?: any);
 		activity: import("bpmn-elements").Activity;
 		assignmentDefinition: any;
+		priorityDefinition: any;
+		taskSchedule: any;
 		
 		resolve(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Activity>): {
-			description: any;
+			description: string;
 			assignee: any;
-			candidateUsers: any[];
-			candidateGroups: any[];
+			candidateUsers: string[];
+			candidateGroups: string[];
+			
+			priority: number | string | undefined;
+			dueDate: string | undefined;
+			followUpDate: string | undefined;
 		};
 	}
 	/**
@@ -237,7 +252,7 @@ declare module '@0dep/bpmn-extensions' {
 		process: import("bpmn-elements").Process;
 		
 		resolve(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Process>): {
-			description: any;
+			description: string;
 		};
 	}
 	/**

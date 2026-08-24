@@ -1,6 +1,6 @@
 # @0dep/bpmn-extensions
 
-[![Built latest](https://github.com/zerodep/bpmn-extensions/actions/workflows/build-latest.yaml/badge.svg)](https://github.com/zerodep/bpmn-extensions/actions/workflows/build-latest.yaml)[![Coverage Status](https://coveralls.io/repos/github/zerodep/bpmn-extensions/badge.svg?branch=main)](https://coveralls.io/github/zerodep/bpmn-extensions?branch=main)[![npm version](https://img.shields.io/npm/v/@0dep/bpmn-extensions)](https://www.npmjs.com/package/@0dep/bpmn-extensions)
+[![Built latest](https://github.com/zerodep/bpmn-extensions/actions/workflows/build-latest.yaml/badge.svg)](https://github.com/zerodep/bpmn-extensions/actions/workflows/build-latest.yaml)[![Coverage Status](https://coveralls.io/repos/github/zerodep/bpmn-extensions/badge.svg?branch=main)](https://coveralls.io/github/zerodep/bpmn-extensions?branch=main)
 
 Flow extensions for [bpmn-elements](https://github.com/paed01/bpmn-elements) with
 [FEEL](https://www.omg.org/dmn/) expression support.
@@ -38,6 +38,9 @@ npm install @0dep/bpmn-extensions bpmn-elements
   process's input becomes variables local to its children.
 - **`zeebe:taskHeaders`** / **`zeebe:properties`** — exposed on the element content.
 - **`zeebe:assignmentDefinition`** — assignee / candidate users / groups for user tasks.
+- **`zeebe:priorityDefinition`** / **`zeebe:taskSchedule`** — a user task's `priority` and
+  `dueDate` / `followUpDate` resolved onto the element content for a task list to order and
+  remind by; FEEL date results are exposed as ISO 8601 strings.
 - **`zeebe:formDefinition`** — resolves a user task's form (`formId` / `formKey` / `externalReference`,
   `bindingType`) onto the element content for a task list to render.
 - **`zeebe:executionListeners`** — blocking start/end job workers around an element, called as
@@ -54,6 +57,9 @@ npm install @0dep/bpmn-extensions bpmn-elements
 ## API
 
 - `extensions(element, context)` — the flow extensions factory; pass it as an environment extension.
+  Elements that carry no zeebe extension data (and nothing else to format) get no extension attached
+  at all and run untouched; call activities and processes are always attached, since they propagate
+  io across process boundaries.
 - `extendFn(behaviour)` — moddle-context-serializer behaviour extender (lifts the extension data
   bpmn-elements expects on the behaviour: call activity process id and multi-instance collection).
 - `FeelExpressions()` — a bpmn-elements `IExpressions` implementation backed by FEEL.
@@ -69,7 +75,7 @@ Wire it into a bpmn-elements definition (see `test/helpers/testHelpers.js` for t
 ```javascript
 import { createRequire } from 'node:module';
 import { strict as assert } from 'node:assert';
-import BpmnModdle from 'bpmn-moddle';
+import { BpmnModdle } from 'bpmn-moddle';
 import * as elements from 'bpmn-elements';
 import { Serializer, TypeResolver } from 'moddle-context-serializer';
 import { extensions, extendFn, FeelExpressions, FeelScripts } from '@0dep/bpmn-extensions';

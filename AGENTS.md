@@ -96,6 +96,19 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   subscribes to `process.enter` in `activate()` (called on `run.enter`, just before the event is
   published). Activity formatting and async work (io, execution listeners) are injected through the
   activity's `format-run-q` queue so the activity waits for them — see `ElementExtensions`.
+- **Defensive loading.** `extensions()` returns `undefined` for an element that carries nothing
+  for us — bpmn-elements skips falsy extension returns, so plain elements (gateways, bare
+  events, undecorated tasks) run untouched: no broker subscriptions, no format-queue traffic.
+  "Carries something" means: any `zeebe:*` extension element (**handled or not** — the bare
+  `zeebe:userTask` marker counts, deliberately, so a native user task keeps the completion-payload
+  merge), a message subscription (via the referenced `bpmn:Message`), `zeebe:loopCharacteristics`,
+  or documentation (format resolves it). Two always-attached exceptions: a **call activity**
+  (output unwrap/merge is type-driven — the standard BPMN `calledElement` attribute needs no
+  zeebe elements) and a **process** (a called process needs its inbound input promoted whatever
+  it carries itself). Consequence, intended: a completely plain task's signal payload is **not**
+  merged into variables/output any more — mark it `zeebe:userTask` (or give it an io mapping) to
+  get the merge. The `isEmpty` flag is computed in `getExtensions`; test:
+  `extension-loading-feature.js`.
 - **Sub-processes need their own extension class** (`SubProcessExtensions`, routed for
   `bpmn:SubProcess` / `bpmn:AdHocSubProcess` / `bpmn:Transaction`). A sub-process shares its broker
   with its children, so child `activity.*` events bubble through it. Subscribing with
@@ -178,6 +191,17 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   per signal and is resume-safe. Each evaluation publishes `activity.condition` with
   `content.conditionResult`. Test: `conditional-event-feature.js` — the parallel-approval scenario
   runs `conditional-event.bpmn`, the rest build with `ProcessBuilder.conditionalCatchEvent`.
+- **User-task priority and schedule** (`zeebe:priorityDefinition`, `zeebe:taskSchedule`) are
+  task-list metadata — the engine never acts on them, so this is pure resolve-and-expose, folded
+  into `FormatActivity` (like `zeebe:assignmentDefinition`): resolved in the activity FEEL scope on
+  enter and put on the content as `priority`, `dueDate`, `followUpDate` (visible on `activity.wait`
+  / `getPostponed()`). Forgiving: no 0–100 clamping, no invented default of 50, no date validation
+  — an absent attribute is simply skipped. A static numeric priority string becomes a number (the
+  `retries` treatment); non-numeric passes through as-is. A FEEL temporal result (luxon `DateTime`
+  from feelin) or a `Date` is **ISO-stringified** — content is JSON-serialized on `getState()`, so
+  a string is the shape that survives a recover round trip (`stopRecoverResume` in
+  `recover-feature.js` JSON round-trips the state to prove it). Tests: `user-task-feature.js` +
+  the recover scenario.
 - **Script tasks** (`zeebe:script`) run through the bpmn-elements `scripts` handler, not a Service:
   `ScriptTaskBehaviour` calls `environment.getScript(scriptFormat, activity)`. `FeelScripts()`
   ignores the (absent) script format, reads the FEEL `expression` off the element, and evaluates it.
@@ -225,5 +249,6 @@ result scope, in input order.
 
 ## Not yet implemented
 
-User-task priority/schedule. The
-`zeebe-bpmn-moddle` schema covers these — extend `getExtensions.js`/`extendFn` and add a module per element.
+Nothing on the list right now. When adding a new `zeebe:*` element: extend the
+`getExtensions.js` switch (PascalCase `$type`) and either fold it into an existing handler
+(thin, format-on-enter metadata → `FormatActivity`) or add a module under `src/extensions/`.

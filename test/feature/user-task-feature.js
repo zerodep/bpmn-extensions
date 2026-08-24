@@ -106,6 +106,56 @@ Feature('User task', () => {
     });
   });
 
+  Scenario('priority and task schedule are resolved onto the content', () => {
+    let content;
+
+    Given('a user task with a FEEL priority and a task schedule (static and FEEL date)', async () => {
+      content = await runUserTask(
+        {
+          priority: '= base + 30',
+          schedule: { dueDate: '2026-09-01T09:00:00Z', followUpDate: '= date and time("2026-09-01T09:00:00Z") + duration("P3D")' },
+        },
+        { variables: { base: 50 } }
+      );
+    });
+
+    Then('the priority FEEL expression is resolved', () => {
+      expect(content.priority).to.equal(80);
+    });
+
+    And('a static due date string passes through untouched', () => {
+      expect(content.dueDate).to.equal('2026-09-01T09:00:00Z');
+    });
+
+    And('a FEEL follow-up date is exposed as an ISO 8601 string', () => {
+      expect(content.followUpDate).to.equal('2026-09-04T09:00:00.000Z');
+    });
+  });
+
+  Scenario('a static numeric priority attribute becomes a number', () => {
+    let content;
+
+    Given('a user task with priority="80"', async () => {
+      content = await runUserTask({ priority: '80' }, {});
+    });
+
+    Then('the priority is exposed as the number 80', () => {
+      expect(content.priority).to.equal(80);
+    });
+  });
+
+  Scenario('a non-numeric priority passes through as-is', () => {
+    let content;
+
+    Given('a user task with priority="high"', async () => {
+      content = await runUserTask({ priority: 'high' }, {});
+    });
+
+    Then('the priority is exposed untouched — no validation, no invented default', () => {
+      expect(content.priority).to.equal('high');
+    });
+  });
+
   Scenario('candidate users that resolve to a non-string, non-list value are dropped', () => {
     let content;
 

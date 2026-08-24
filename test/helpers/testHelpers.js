@@ -1,5 +1,5 @@
 import Debug from 'debug';
-import BpmnModdle from 'bpmn-moddle';
+import { BpmnModdle } from 'bpmn-moddle';
 import * as elements from 'bpmn-elements';
 import { Serializer, TypeResolver } from 'moddle-context-serializer';
 import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' };

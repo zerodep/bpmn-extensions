@@ -22,6 +22,7 @@ import { Subscription } from './extensions/Subscription.js';
  * @property {any} [calledDecision]
  * @property {Function} [Service]
  * @property {Subscription} [subscription]
+ * @property {boolean} [isEmpty] no zeebe extension data found and nothing to format — the element needs no extension
  */
 
 /**
@@ -34,10 +35,15 @@ export function getExtensions(element, context) {
   const result = {};
   const isProcess = element.type === 'bpmn:Process';
 
-  let assignmentDefinition;
+  let assignmentDefinition, priorityDefinition, taskSchedule;
+  let foundZeebe = false;
   const values = element.behaviour.extensionElements?.values;
   if (values) {
     for (const ext of values) {
+      // Any zeebe-namespaced extension element counts as found — including ones with no
+      // handler (e.g. the bare `zeebe:userTask` marker), which keep the element extension
+      // loaded so e.g. a native user task's completion payload is merged.
+      if (ext.$type.startsWith('zeebe:')) foundZeebe = true;
       switch (ext.$type) {
         case 'zeebe:IoMapping':
           result.io = new IoMapping(element, ext);
@@ -50,6 +56,12 @@ export function getExtensions(element, context) {
           break;
         case 'zeebe:AssignmentDefinition':
           assignmentDefinition = ext;
+          break;
+        case 'zeebe:PriorityDefinition':
+          priorityDefinition = ext;
+          break;
+        case 'zeebe:TaskSchedule':
+          taskSchedule = ext;
           break;
         case 'zeebe:ExecutionListeners':
           if (ext.listeners?.length) result.listeners = new ExecutionListeners(element, ext);
@@ -92,7 +104,16 @@ export function getExtensions(element, context) {
   );
   if (loopExtension?.outputCollection) result.loop = new LoopCharacteristics(loopExtension);
 
-  result.format = isProcess ? new FormatProcess(element) : new FormatActivity(element, assignmentDefinition);
+  // Nothing zeebe-flavoured and nothing to format — the element needs no extension. A call
+  // activity is never inert: its output unwrap/merge is type-driven (the standard BPMN
+  // `calledElement` attribute needs no zeebe elements). Ignored for processes — a called
+  // process always needs its inbound input promoted, whatever it carries itself.
+  result.isEmpty =
+    !foundZeebe && !result.subscription && !loopExtension && !element.behaviour.documentation && element.type !== 'bpmn:CallActivity';
+
+  result.format = isProcess
+    ? new FormatProcess(element)
+    : new FormatActivity(element, assignmentDefinition, priorityDefinition, taskSchedule);
 
   return result;
 }

@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## v0.0.5 - 2026-08-24
+
+### Breaking
+
+- stop publishing on activity format queue if there is nothing to format
+
+### Additions
+
+- support task priority and task schedule, published on user task wait message as `priority`, `dueDate` and `followUpDate`
+
 ## v0.0.4 - 2026-08-17
 
 - Environment services are in FEEL scope under `services`, callable as functions in every expression (conditions, io mapping, scripts, correlation keys, ...) — e.g. `= services.isEligible(order)`. Unlike functions passed through variables, services survive `getState()`/`recover()`, so they are resume-safe. A variable named `services` shadows the overlay. New exported helper `getFeelScope(environment, localVariables)` builds the scope.

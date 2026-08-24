@@ -1,4 +1,4 @@
-import BpmnModdle from 'bpmn-moddle';
+import { BpmnModdle } from 'bpmn-moddle';
 import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' };
 
 /**
@@ -22,6 +22,8 @@ import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' 
  * @property {Record<string, any>} [headers]
  * @property {Record<string, any>} [properties]
  * @property {Record<string, any>} [assignment]
+ * @property {string|number} [priority]
+ * @property {{ dueDate?: string, followUpDate?: string }} [schedule]
  * @property {Record<string, any>[]} [executionListeners]
  * @property {{ expression: string, resultVariable?: string }} [script]
  * @property {Record<string, any>} [calledDecision]
@@ -59,7 +61,21 @@ export class ProcessBuilder {
   }
 
   /** @param {TaskConfig} config */
-  #buildExtensions({ jobType, retries, io, headers, properties, assignment, executionListeners, script, calledDecision, form, userTask }) {
+  #buildExtensions({
+    jobType,
+    retries,
+    io,
+    headers,
+    properties,
+    assignment,
+    priority,
+    schedule,
+    executionListeners,
+    script,
+    calledDecision,
+    form,
+    userTask,
+  }) {
     const m = this.moddle;
     const values = [];
     if (userTask) values.push(m.create('zeebe:UserTask', {}));
@@ -90,6 +106,8 @@ export class ProcessBuilder {
       );
     }
     if (assignment) values.push(m.create('zeebe:AssignmentDefinition', assignment));
+    if (priority !== undefined) values.push(m.create('zeebe:PriorityDefinition', { priority }));
+    if (schedule) values.push(m.create('zeebe:TaskSchedule', schedule));
     if (executionListeners) {
       values.push(
         m.create('zeebe:ExecutionListeners', {

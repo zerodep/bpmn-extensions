@@ -18,20 +18,32 @@ export { ServiceError, FormatError } from './Errors.js';
 
 /**
  * Flow extensions factory. Pass it to the engine via the environment `extensions` option.
+ *
+ * Returns undefined for an element that carries no zeebe extension data and nothing else to
+ * format (no documentation, not a call activity) — bpmn-elements skips falsy extensions, so
+ * plain elements run untouched, with no broker subscriptions or format-queue traffic.
  * @param {import('bpmn-elements').Activity | import('bpmn-elements').Process} element
  * @param {import('bpmn-elements').ContextInstance} context
- * @returns {FlowExtension}
+ * @returns {FlowExtension | undefined}
  */
 export function extensions(element, context) {
   switch (element.type) {
     case 'bpmn:Process':
+      // A process is always attached: a called process needs its inbound input promoted
+      // even when it carries no zeebe extension data of its own.
       return new ProcessExtensions(element, context);
     case 'bpmn:SubProcess':
     case 'bpmn:AdHocSubProcess':
-    case 'bpmn:Transaction':
-      return new SubProcessExtensions(element, context);
-    default:
-      return new ElementExtensions(element, context);
+    case 'bpmn:Transaction': {
+      const subProcessExtensions = new SubProcessExtensions(element, context);
+      if (subProcessExtensions.extensions.isEmpty) return undefined;
+      return subProcessExtensions;
+    }
+    default: {
+      const elementExtensions = new ElementExtensions(element, context);
+      if (elementExtensions.extensions.isEmpty) return undefined;
+      return elementExtensions;
+    }
   }
 }
 

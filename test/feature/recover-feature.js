@@ -3,13 +3,14 @@ import { createDefinition } from '../helpers/testHelpers.js';
 /**
  * Run a definition until it waits, stop it, capture state, then recover into a fresh definition and
  * resume to completion — signalling the waiting element. Returns the recovered definition and the
- * content the element waited with after resume.
+ * content the element waited with after resume. The state is JSON round-tripped, as a host
+ * persisting it to storage would — anything non-JSON on the content is lost here.
  */
 async function stopRecoverResume(source, options) {
   const first = await createDefinition(source, options);
   first.on('activity.wait', () => first.stop());
   first.run();
-  const state = first.getState();
+  const state = JSON.parse(JSON.stringify(first.getState()));
 
   const recovered = await createDefinition(source, options);
   recovered.recover(state);
@@ -45,6 +46,35 @@ Feature('Stop, recover and resume', () => {
 
     Then('on resume the assignment definition re-resolves from the recovered variable', () => {
       expect(result.resumedWait.assignee).to.equal('assigned-ada');
+    });
+
+    And('the recovered definition runs to completion', () => {
+      expect(result.recovered.counters.completed).to.equal(1);
+    });
+  });
+
+  Scenario('priority and task schedule survive a stop/recover/resume cycle', () => {
+    let result;
+
+    Given('a process waiting on a user task with a FEEL priority and due date', async () => {
+      const source = `<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" id="d">
+        <process id="p" isExecutable="true">
+          <startEvent id="start" /><sequenceFlow id="f1" sourceRef="start" targetRef="task" />
+          <userTask id="task">
+            <extensionElements>
+              <zeebe:priorityDefinition priority="= base + 25" />
+              <zeebe:taskSchedule dueDate="= date and time(&#34;2026-09-01T09:00:00Z&#34;) + duration(&#34;P3D&#34;)" />
+            </extensionElements>
+          </userTask>
+          <sequenceFlow id="f2" sourceRef="task" targetRef="end" /><endEvent id="end" />
+        </process>
+      </definitions>`;
+      result = await stopRecoverResume(source, { variables: { base: 50 } });
+    });
+
+    Then('on resume the priority and the ISO due date string are on the wait content', () => {
+      expect(result.resumedWait.priority).to.equal(75);
+      expect(result.resumedWait.dueDate).to.equal('2026-09-04T09:00:00.000Z');
     });
 
     And('the recovered definition runs to completion', () => {
