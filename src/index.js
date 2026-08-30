@@ -5,6 +5,7 @@ import { SubProcessExtensions } from './SubProcessExtensions.js';
 export { ElementExtensions, ProcessExtensions, SubProcessExtensions };
 export { FeelExpressions } from './Expressions.js';
 export { FeelScripts } from './extensions/FeelScripts.js';
+export { TimerEventDefinition } from './TimerEventDefinition.js';
 export { isFeelExpression, stripFeel, evaluateFeel, evaluateFeelUnaryTest, resolveValue, getFeelScope } from './feel.js';
 export { JobService } from './extensions/TaskDefinition.js';
 export { ServiceError, FormatError } from './Errors.js';
@@ -52,10 +53,17 @@ export function extensions(element, context) {
  *
  * Lifts extension data onto the places bpmn-elements expects to find it on the element
  * behaviour: the call activity's called process id (`zeebe:calledElement`) and the multi-instance
- * input collection/element (`zeebe:loopCharacteristics`).
+ * input collection/element (`zeebe:loopCharacteristics`). A timer start event's `timeCycle`
+ * (ISO 8601 or cron) is lifted as `scheduledStart`, so a scheduler can find it without running
+ * the flow.
  * @param {any} behaviour
  */
 export function extendFn(behaviour) {
+  if (behaviour.$type === 'bpmn:StartEvent' && Array.isArray(behaviour.eventDefinitions)) {
+    const timer = behaviour.eventDefinitions.find((ed) => ed?.type === 'bpmn:TimerEventDefinition' && ed.behaviour?.timeCycle);
+    if (timer) behaviour.scheduledStart = timer.behaviour.timeCycle;
+  }
+
   const values = behaviour.extensionElements?.values;
   if (Array.isArray(values)) {
     for (const ext of values) {

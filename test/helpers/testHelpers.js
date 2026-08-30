@@ -4,11 +4,12 @@ import * as elements from 'bpmn-elements';
 import { Serializer, TypeResolver } from 'moddle-context-serializer';
 import schema from 'zeebe-bpmn-moddle/resources/zeebe.json' with { type: 'json' };
 
-import { extensions, extendFn, FeelExpressions, FeelScripts } from '@0dep/bpmn-extensions';
+import { extensions, extendFn, FeelExpressions, FeelScripts, TimerEventDefinition } from '@0dep/bpmn-extensions';
 
 // The bpmn-elements namespace also exports non-constructors (TimerTypeValue), which the
-// TypeResolver parameter type does not admit — it ignores them at runtime.
-const typeResolver = TypeResolver(/** @type {any} */ (elements));
+// TypeResolver parameter type does not admit — it ignores them at runtime. The cron-capable
+// TimerEventDefinition replaces the bpmn-elements default.
+const typeResolver = TypeResolver(/** @type {any} */ ({ ...elements, TimerEventDefinition }));
 
 /**
  * A bpmn-elements logger factory wired to the `debug` package, so the engine and the extensions

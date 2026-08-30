@@ -104,12 +104,18 @@ export function getExtensions(element, context) {
   );
   if (loopExtension?.outputCollection) result.loop = new LoopCharacteristics(loopExtension);
 
-  // Nothing zeebe-flavoured and nothing to format — the element needs no extension. A call
+  // Nothing zeebe-flavoured and nothing to format (documentation, a process-level timer start
+  // event's `scheduledStart`) — the element needs no extension. A call
   // activity is never inert: its output unwrap/merge is type-driven (the standard BPMN
   // `calledElement` attribute needs no zeebe elements). Ignored for processes — a called
   // process always needs its inbound input promoted, whatever it carries itself.
   result.isEmpty =
-    !foundZeebe && !result.subscription && !loopExtension && !element.behaviour.documentation && element.type !== 'bpmn:CallActivity';
+    !foundZeebe &&
+    !result.subscription &&
+    !loopExtension &&
+    !element.behaviour.documentation &&
+    !(element.behaviour.scheduledStart && element.parent?.type === 'bpmn:Process') &&
+    element.type !== 'bpmn:CallActivity';
 
   result.format = isProcess
     ? new FormatProcess(element)

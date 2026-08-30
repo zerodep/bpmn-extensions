@@ -1,4 +1,5 @@
 declare module '@0dep/bpmn-extensions' {
+	import type { TimerEventDefinition as BaseTimerEventDefinition } from 'bpmn-elements';
 	/**
 	 * A flow extension activated by bpmn-elements around an element's run.
 	 * */
@@ -15,7 +16,9 @@ declare module '@0dep/bpmn-extensions' {
 	 *
 	 * Lifts extension data onto the places bpmn-elements expects to find it on the element
 	 * behaviour: the call activity's called process id (`zeebe:calledElement`) and the multi-instance
-	 * input collection/element (`zeebe:loopCharacteristics`).
+	 * input collection/element (`zeebe:loopCharacteristics`). A timer start event's `timeCycle`
+	 * (ISO 8601 or cron) is lifted as `scheduledStart`, so a scheduler can find it without running
+	 * the flow.
 	 * */
 	export function extendFn(behaviour: any): void;
 	/**
@@ -48,6 +51,20 @@ declare module '@0dep/bpmn-extensions' {
 	 *
 	 * */
 	export function FeelScripts(): import("bpmn-elements").IScripts;
+	/**
+	 * bpmn-elements timer event definition that also accepts a **cron** `timeCycle` (Camunda 8
+	 * timer start events schedule with cron, e.g. `0 0 * * *`). An ISO 8601 interval is tried
+	 * first; on failure the value is parsed as cron and the next run is the expiry.
+	 *
+	 * Install it via the type resolver so it replaces the bpmn-elements default:
+	 * `TypeResolver({ ...elements, TimerEventDefinition })`.
+	 */
+	export class TimerEventDefinition extends BaseTimerEventDefinition {
+		/**
+		 * Supported timeCycle formats
+		 * */
+		get supports(): string[];
+	}
 	/**
 	 * `zeebe:taskDefinition`.
 	 *
@@ -220,8 +237,8 @@ declare module '@0dep/bpmn-extensions' {
 		isEmpty?: boolean | undefined;
 	};
 	/**
-	 * Format an activity on enter from its behaviour and extensions: documentation and,
-	 * for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups),
+	 * Format an activity on enter from its behaviour and extensions: documentation, a top-level
+	 * timer start event's `scheduledStart` (lifted by `extendFn`) and, for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups),
 	 * `zeebe:priorityDefinition` (priority), and `zeebe:taskSchedule` (due/follow-up date).
 	 */
 	class FormatActivity {
@@ -234,6 +251,7 @@ declare module '@0dep/bpmn-extensions' {
 		
 		resolve(elementApi: import("bpmn-elements").IApi<import("bpmn-elements").Activity>): {
 			description: string;
+			scheduledStart: any;
 			assignee: any;
 			candidateUsers: string[];
 			candidateGroups: string[];

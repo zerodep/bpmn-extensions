@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## v0.0.6 - 2026-08-30
+
+### Additions
+
+- `TimerEventDefinition` — a bpmn-elements timer event definition that also parses a **cron** `timeCycle` (`0 0 * * *`, as Camunda 8 schedules timer start events) besides ISO 8601 intervals. Install it through the type resolver: `TypeResolver({ ...elements, TimerEventDefinition })`.
+- `extendFn` lifts a timer start event's `timeCycle` onto the behaviour as `scheduledStart`; a process-level timer start event exposes it on its content, so a scheduler can find the flows to start without running them.
+- New peer dependency [`croner`](https://www.npmjs.com/package/croner) (`>= 9`) for cron parsing; kept external in the CJS bundle.
+- Dev: `zeebe-bpmn-moddle` bumped to v2.
+
 ## v0.0.5 - 2026-08-24
 
 ### Breaking

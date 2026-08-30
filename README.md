@@ -12,10 +12,11 @@ which covers the older `camunda:*` extension elements.
 ## Install
 
 ```sh
-npm install @0dep/bpmn-extensions bpmn-elements
+npm install @0dep/bpmn-extensions bpmn-elements croner
 ```
 
-`bpmn-elements` (>= 18) is a peer dependency. Requires Node.js >= 22.
+`bpmn-elements` (>= 18) and [`croner`](https://www.npmjs.com/package/croner) (cron timer cycles) are
+peer dependencies. Requires Node.js >= 22.
 
 ## What it does
 
@@ -49,6 +50,10 @@ npm install @0dep/bpmn-extensions bpmn-elements
 - **`zeebe:calledElement`** — call activity target process id.
 - **`zeebe:loopCharacteristics`** — collection-based multi-instance (`inputCollection` / `inputElement`),
   sequential or parallel, with `outputElement` aggregated into the `outputCollection` array in input order.
+- **Timer start events with cron** — a `TimerEventDefinition` that also parses a **cron** `timeCycle`
+  (`0 0 * * *`, as Camunda 8 schedules timer start events) besides ISO 8601 intervals. A top-level
+  timer start event's cycle is lifted onto its behaviour as `scheduledStart` by `extendFn` and exposed
+  on the start event content, so a scheduler can find the flows to start without running them.
 - **`zeebe:subscription`** — the referenced message's `correlationKey` is resolved when the catching
   element (receive task, message event) starts waiting, and exposed on its content as
   `subscription: { message, correlationKey }` — route an incoming message by matching it against the
@@ -61,7 +66,10 @@ npm install @0dep/bpmn-extensions bpmn-elements
   at all and run untouched; call activities and processes are always attached, since they propagate
   io across process boundaries.
 - `extendFn(behaviour)` — moddle-context-serializer behaviour extender (lifts the extension data
-  bpmn-elements expects on the behaviour: call activity process id and multi-instance collection).
+  bpmn-elements expects on the behaviour: call activity process id, multi-instance collection, and a
+  timer start event's cycle as `scheduledStart`).
+- `TimerEventDefinition` — a bpmn-elements timer event definition that accepts cron `timeCycle`s;
+  install it through the type resolver: `TypeResolver({ ...elements, TimerEventDefinition })`.
 - `FeelExpressions()` — a bpmn-elements `IExpressions` implementation backed by FEEL.
 - `FeelScripts()` — a bpmn-elements `scripts` implementation that runs `zeebe:script` FEEL expressions.
 - FEEL helpers: `isFeelExpression`, `stripFeel`, `evaluateFeel`, `evaluateFeelUnaryTest`, `resolveValue`,
@@ -130,6 +138,60 @@ A service task's `zeebe:taskDefinition type="charge-card"` is dispatched to the 
 service named `charge-card`. Its callback result is the job's variables, which `zeebe:ioMapping`
 output parameters map back into the process.
 
+## Extract timers
+
+List the timers of a definition without running it — e.g. to schedule flows by their timer start
+event. The serializer collects every timer event definition; `extendFn` marks a timer start event's
+cycle as `scheduledStart`, and the cron-capable `TimerEventDefinition` parses each one to its next
+expiry:
+
+```javascript
+import { createRequire } from 'node:module';
+import { strict as assert } from 'node:assert';
+import { BpmnModdle } from 'bpmn-moddle';
+import * as elements from 'bpmn-elements';
+import { Serializer, TypeResolver } from 'moddle-context-serializer';
+import { extendFn, TimerEventDefinition } from '@0dep/bpmn-extensions';
+
+const require = createRequire(import.meta.url);
+const moddle = new BpmnModdle({ zeebe: require('zeebe-bpmn-moddle/resources/zeebe.json') });
+
+const source = `<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="def">
+  <process id="nightly" isExecutable="true">
+    <startEvent id="start">
+      <timerEventDefinition>
+        <timeCycle xsi:type="tFormalExpression">0 1 * * *</timeCycle>
+      </timerEventDefinition>
+    </startEvent>
+    <sequenceFlow id="to-task" sourceRef="start" targetRef="task" />
+    <userTask id="task" />
+    <boundaryEvent id="reminder" cancelActivity="false" attachedToRef="task">
+      <timerEventDefinition>
+        <timeDuration xsi:type="tFormalExpression">R3/PT1M</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+  </process>
+</definitions>`;
+
+const moddleContext = await moddle.fromXML(source);
+const serializer = Serializer(moddleContext, TypeResolver({ ...elements, TimerEventDefinition }), extendFn);
+
+const dummyActivity = { id: 'dummy', broker: {}, environment: { Logger() {} } };
+const timers = serializer.getTimers().map((t) => ({
+  ...t,
+  parsed: new TimerEventDefinition(dummyActivity, { type: t.timer.type, behaviour: t.timer }).parse(t.timer.timerType, t.timer.value),
+}));
+
+console.log(timers.map((t) => [t.parent.id, t.timer.timerType, t.timer.value, t.parsed.expireAt]));
+assert.equal(timers.length, 2);
+assert.equal(timers[0].parent.id, 'start');
+assert.ok(timers[0].parsed.expireAt instanceof Date);
+
+// A timer start event is a schedule: the cycle is lifted onto the behaviour
+assert.equal(serializer.getActivityById('start').behaviour.scheduledStart, '0 1 * * *');
+```
+
 ## Development
 
 ```sh
@@ -147,6 +209,7 @@ the engine's `Logger` to the [`debug`](https://www.npmjs.com/package/debug) pack
 
 # Ecosystem
 
+- [0dep.se/run](https://0dep.se/run) — Run a BPMN diagram in the browser: `bpmn-elements` wired with `@0dep/bpmn-extensions`, drawn with bpmn-js; step through, signal waiting tasks, and drop DMN files for business rule tasks.
 - [bpmn-engine](https://github.com/paed01/bpmn-engine) — BPMN 2.0 execution engine wrapping `bpmn-elements`; the batteries-included way to run, stop, resume, and recover flows.
 - [bpmn-middleware](https://github.com/zerodep/bpmn-middleware) — Express middleware exposing the engine over HTTP, with pluggable state storage.
 - [@onify/flow-extensions](https://github.com/onify/flow-extensions) — Onify Flow extensions for `bpmn-elements`.

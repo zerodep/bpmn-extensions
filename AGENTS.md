@@ -34,7 +34,7 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
 - **Package name**: `@0dep/bpmn-extensions`.
 - **Module format**: dual. Source is ESM (`src/`, `type: module`); the CommonJS build is bundled
   with **rollup** into `dist/`. `feelin` is ESM-only so it is **bundled into the CJS output**;
-  `bpmn-elements` stays external (peer dep). A generated `dist/package.json` (`{"type":"commonjs"}`)
+  `bpmn-elements` and `croner` stay external (peer deps). A generated `dist/package.json` (`{"type":"commonjs"}`)
   marks the bundle as CommonJS — required because the root package is `type: module`.
 - **Types**: generated from JSDoc with **dts-buddy** into `types/index.d.ts` (`npm run types`,
   also run by `prepack`; `tsconfig.json` is dts-buddy's config). `types/` is gitignored like `dist/`.
@@ -183,6 +183,25 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   targeted per-execution api path is the discriminator. Known edges (fine, forgiving): a top-level
   message start event resolves against an empty scope → `undefined`; a multi-instance receive task
   resolves once on enter, not per iteration. Tests: `message-feature.js`.
+- **Timer start events / cron.** `TimerEventDefinition` (`src/TimerEventDefinition.js`, a
+  subclass of the bpmn-elements one) tries ISO 8601 first and falls back to **cron via `croner`**
+  for a `timeCycle` — Camunda 8 schedules timer start events with cron. `croner` is a **peer
+  dependency** (external in the rollup bundle, like bpmn-elements). It is installed through the
+  serializer type resolver (`TypeResolver({ ...elements, TimerEventDefinition })` — the harness
+  does this), not the environment; `parse` throws a `RangeError` (with `cause`) when neither
+  format matches, so an unparseable cycle faults the activity exactly as before. The cron branch
+  yields no `repeat` — the next run is the expiry. `extendFn` lifts a `bpmn:StartEvent`'s
+  `timeCycle` onto the behaviour as **`scheduledStart`** (only a cycle — a duration/date start is
+  not a schedule); `FormatActivity` exposes it on the start event content **only for a top-level
+  start event** (`parent.type === 'bpmn:Process'`; a sub-process start runs whenever its parent
+  does), and `getExtensions` counts that as "carries something" so the element extension is
+  attached (which makes the start event's enter one tick async — tests must not inspect
+  `timers.executing` synchronously after `run()`). The raw expression is exposed (`= schedule`
+  stays unresolved); bpmn-elements resolves it at run time. Timer _extraction_ itself is
+  moddle-context-serializer (`serializer.getTimers()` / `getTimersByElementId`), no code here —
+  README "Extract timers" example. To cancel a waiting timer start event in a test use
+  `definition.cancelActivity({ id })` (the postponed api's `cancel()` doesn't fire the timer).
+  Tests: `timer-feature.js`, `TimerEventDefinition-test.js`, `extend-fn-feature.js`.
 - **Conditional events need no extension-side support** — bpmn-elements' `ConditionalEventDefinition`
   evaluates the `bpmn:condition` on enter and re-evaluates it on **each signal** (never on variable
   change — something must nudge the waiting event). A `= ...` condition body flows through
@@ -213,8 +232,8 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
 
 - `src/` — `index.js` (public API: `extensions`, `extendFn`, re-exports), `Expressions.js` (FEEL
   adapter), `feel.js` (feelin wrappers), `ElementExtensions.js` / `ProcessExtensions.js` /
-  `SubProcessExtensions.js`, `getExtensions.js`, `extensions/*` (one module per `zeebe:*` element),
-  `Errors.js`.
+  `SubProcessExtensions.js`, `getExtensions.js`, `TimerEventDefinition.js` (cron-capable timer),
+  `extensions/*` (one module per `zeebe:*` element), `Errors.js`.
 - **No `helpers`/`utils` files.** Inline trivial logic (e.g. `environment.variables`, the io-mapping
   `setPath`) at its single use site rather than extracting a shared helper. Prefer duplication over a
   catch-all utils module — DRY is not a goal here.

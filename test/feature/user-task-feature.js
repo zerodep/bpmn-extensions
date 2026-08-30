@@ -132,6 +132,34 @@ Feature('User task', () => {
     });
   });
 
+  Scenario('a schedule date from a service returning a Date', () => {
+    let content;
+
+    Given('a user task whose due date is computed by an environment service returning a JS Date', async () => {
+      content = await runUserTask(
+        { schedule: { dueDate: '= services.deadline()' } },
+        { services: { deadline: () => new Date('2026-09-01T09:00:00Z') } }
+      );
+    });
+
+    Then('the date is exposed as an ISO 8601 string', () => {
+      expect(content.dueDate).to.equal('2026-09-01T09:00:00.000Z');
+    });
+  });
+
+  Scenario('a schedule date that resolves to nothing', () => {
+    let content;
+
+    Given('a user task whose due date FEEL yields null and whose follow-up date is an unset variable', async () => {
+      content = await runUserTask({ schedule: { dueDate: '= null', followUpDate: '= later' } }, {});
+    });
+
+    Then('the dates are exposed as-is — no validation, no invented default', () => {
+      expect(content).to.have.property('dueDate', null);
+      expect(content).to.have.property('followUpDate', null);
+    });
+  });
+
   Scenario('a static numeric priority attribute becomes a number', () => {
     let content;
 

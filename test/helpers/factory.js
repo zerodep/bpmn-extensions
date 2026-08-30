@@ -139,8 +139,21 @@ export class ProcessBuilder {
     return message;
   }
 
-  startEvent(id = 'start') {
-    return this.#add(this.moddle.create('bpmn:StartEvent', { id }));
+  /**
+   * @param {string} [id]
+   * @param {{ timer?: { timeCycle?: string, timeDate?: string, timeDuration?: string } }} [config]
+   */
+  startEvent(id = 'start', { timer } = {}) {
+    const attrs = { id };
+    if (timer) {
+      const m = this.moddle;
+      const definition = m.create('bpmn:TimerEventDefinition');
+      for (const [timerType, body] of Object.entries(timer)) {
+        definition[timerType] = m.create('bpmn:FormalExpression', { body });
+      }
+      attrs.eventDefinitions = [definition];
+    }
+    return this.#add(this.moddle.create('bpmn:StartEvent', attrs));
   }
 
   endEvent(id = 'end') {

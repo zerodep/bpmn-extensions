@@ -1,8 +1,8 @@
 import { resolveValue, getFeelScope } from '../feel.js';
 
 /**
- * Format an activity on enter from its behaviour and extensions: documentation and,
- * for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups),
+ * Format an activity on enter from its behaviour and extensions: documentation, a top-level
+ * timer start event's `scheduledStart` (lifted by `extendFn`) and, for user tasks, the `zeebe:assignmentDefinition` (assignee, candidate users/groups),
  * `zeebe:priorityDefinition` (priority), and `zeebe:taskSchedule` (due/follow-up date).
  */
 export class FormatActivity {
@@ -30,6 +30,11 @@ export class FormatActivity {
       const text = documentation[0]?.text;
       if (text) result.description = /** @type {string} */ (resolveValue(text, scope));
     }
+
+    // A timer start event's cycle is only a schedule when it starts the process itself — a
+    // sub-process start event runs whenever its parent does.
+    const scheduledStart = this.activity.behaviour.scheduledStart;
+    if (scheduledStart && this.activity.parent?.type === 'bpmn:Process') result.scheduledStart = scheduledStart;
 
     const assignment = this.assignmentDefinition;
     if (assignment) {
