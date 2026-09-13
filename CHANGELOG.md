@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v0.1.0 - 2026-09-13
+
+- require bpmn-elements@>=18.0.25
+- readme toc
+
 ## v0.0.6 - 2026-08-30
 
 ### Additions

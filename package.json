@@ -1,6 +1,6 @@
 {
   "name": "@0dep/bpmn-extensions",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Flow extensions for bpmn-elements: FEEL expressions and the zeebe-namespace BPMN extension elements",
   "type": "module",
   "module": "src/index.js",
@@ -22,8 +22,10 @@
     "test:lcov": "c8 -r lcov mocha && npm run lint",
     "test:md": "texample",
     "cov:html": "c8 mocha && c8 report --reporter html",
-    "posttest": "npm run lint && npm run test:md && npm run prepack",
+    "posttest": "npm run toc && npm run lint && npm run test:md && npm run prepack",
     "lint": "eslint . --cache && prettier . --check --cache",
+    "toc": "toc README.md",
+    "posttoc": "prettier --write README.md",
     "format": "eslint . --fix && prettier . --write",
     "dist": "rollup -c",
     "types": "dts-buddy types/index.d.ts -m @0dep/bpmn-extensions:src/index.js",
@@ -51,7 +53,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "bpmn-elements": ">=18.0.12",
+    "bpmn-elements": ">=18.0.25",
     "croner": ">=9"
   },
   "dependencies": {
@@ -63,6 +65,7 @@
     }
   },
   "devDependencies": {
+    "@0dep/toc": "^1.0.1",
     "@eslint/js": "^10.0.1",
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",

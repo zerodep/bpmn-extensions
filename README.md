@@ -9,6 +9,19 @@ It teaches a bpmn-elements engine to run BPMN that uses the `zeebe:*` extension 
 expressions (`= ...`) — the counterpart to [`@onify/flow-extensions`](https://github.com/onify/flow-extensions),
 which covers the older `camunda:*` extension elements.
 
+<!-- toc -->
+
+- [Install](#install)
+- [What it does](#what-it-does)
+- [API](#api)
+- [Usage](#usage)
+- [Extract timers](#extract-timers)
+- [Development](#development)
+- [Ecosystem](#ecosystem)
+- [License](#license)
+
+<!-- /toc -->
+
 ## Install
 
 ```sh
@@ -207,7 +220,7 @@ in `test/helpers/factory.js`, then run on a real bpmn-elements `Definition`. The
 the engine's `Logger` to the [`debug`](https://www.npmjs.com/package/debug) package, so
 `DEBUG=bpmn-extensions:* npm test` traces the engine and extensions (`:error:*` for errors only).
 
-# Ecosystem
+## Ecosystem
 
 - [0dep.se/run](https://0dep.se/run) — Run a BPMN diagram in the browser: `bpmn-elements` wired with `@0dep/bpmn-extensions`, drawn with bpmn-js; step through, signal waiting tasks, and drop DMN files for business rule tasks.
 - [bpmn-engine](https://github.com/paed01/bpmn-engine) — BPMN 2.0 execution engine wrapping `bpmn-elements`; the batteries-included way to run, stop, resume, and recover flows.
