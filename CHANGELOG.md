@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.1.1 - 2026-09-16
+
+- set package homepage
+
 ## v0.1.0 - 2026-09-13
 
 - require bpmn-elements@>=18.0.25

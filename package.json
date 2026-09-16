@@ -1,6 +1,6 @@
 {
   "name": "@0dep/bpmn-extensions",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Flow extensions for bpmn-elements: FEEL expressions and the zeebe-namespace BPMN extension elements",
   "type": "module",
   "module": "src/index.js",
@@ -45,9 +45,10 @@
     "url": "git+https://github.com/zerodep/bpmn-extensions.git"
   },
   "author": {
-    "name": "Pål Edman",
-    "url": "https://github.com/paed01"
+    "name": "Zerodep AB",
+    "url": "https://0dep.se"
   },
+  "homepage": "https://0dep.se/run/",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
@@ -93,7 +94,8 @@
   "files": [
     "src",
     "dist",
-    "types"
+    "types",
+    "CHANGELOG.md"
   ],
   "c8": {
     "exclude": [
