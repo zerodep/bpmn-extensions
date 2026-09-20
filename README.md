@@ -210,7 +210,6 @@ assert.equal(serializer.getActivityById('start').behaviour.scheduledStart, '0 1 
 ```sh
 npm test           # mocha (BDD, mocha-cakes-2) + lint + run README examples (texample)
 npm run test:md     # run the README javascript examples with texample
-npm run dist        # bundle the CommonJS build with rollup
 npm run types       # generate types/index.d.ts from JSDoc with dts-buddy
 npm run format      # eslint --fix && prettier --write
 ```
@@ -222,7 +221,7 @@ the engine's `Logger` to the [`debug`](https://www.npmjs.com/package/debug) pack
 
 ## Ecosystem
 
-- [0dep.se/run](https://0dep.se/run) — Run a BPMN diagram in the browser: `bpmn-elements` wired with `@0dep/bpmn-extensions`, drawn with bpmn-js; step through, signal waiting tasks, and drop DMN files for business rule tasks.
+- [0dep.se/run](https://0dep.se/run/) — Run a BPMN diagram in the browser: `bpmn-elements` wired with `@0dep/bpmn-extensions`, drawn with bpmn-js; step through, signal waiting tasks, and drop DMN files for business rule tasks.
 - [bpmn-engine](https://github.com/paed01/bpmn-engine) — BPMN 2.0 execution engine wrapping `bpmn-elements`; the batteries-included way to run, stop, resume, and recover flows.
 - [bpmn-middleware](https://github.com/zerodep/bpmn-middleware) — Express middleware exposing the engine over HTTP, with pluggable state storage.
 - [@onify/flow-extensions](https://github.com/onify/flow-extensions) — Onify Flow extensions for `bpmn-elements`.

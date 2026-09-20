@@ -91,17 +91,17 @@ export class FormatProcess {
 }
 
 /**
- * Resolve a due/follow-up date to an ISO 8601 string. A FEEL temporal result (a luxon
- * DateTime) or a Date is ISO-stringified — content is JSON-serialized on `getState()`, so a
- * string is the shape that survives a recover round trip. Anything else passes through as-is.
+ * Resolve a due/follow-up date to an ISO 8601 string. A FEEL temporal result (a feelin
+ * `FeelDateTime`) or a Date is ISO-stringified via `toJSON()` — content is JSON-serialized on
+ * `getState()`, so a string is the shape that survives a recover round trip. Anything else
+ * passes through as-is.
  * @param {any} value
  * @param {any} scope
  * @returns {string | undefined} Date as iso string
  */
 function resolveDate(value, scope) {
   const resolved = resolveValue(value, scope);
-  if (typeof resolved?.toISO === 'function') return resolved.toISO();
-  if (resolved instanceof Date) return resolved.toISOString();
+  if (typeof resolved?.toJSON === 'function') return resolved.toJSON();
   return resolved;
 }
 

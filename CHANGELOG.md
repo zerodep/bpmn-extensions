@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## v1.0.0 - 2026-09-20
+
+### Breaking
+
+- ESM only: the CommonJS rollup bundle (`dist/`) is gone. `require('@0dep/bpmn-extensions')` still works through Node's `require(esm)`, so the supported Node range is now `>=22.12` (was `>=22`; 22.0–22.11 CommonJS consumers would need `--experimental-require-module`). `feelin` is no longer bundled — `import` and `require` consumers share the installed copy.
+- `feelin` bumped to v8, which moved FEEL temporal values from luxon to [Temporal](https://tc39.es/proposal-temporal/). A user task `dueDate`/`followUpDate` resolved from a FEEL expression is still an ISO 8601 string, now in feelin's serialization (`2026-09-04T09:00:00Z`, no `.000` milliseconds). Week durations (`P1W`) and mixed-kind duration arithmetic (months + days) are now rejected by feelin instead of silently miscomputed.
+
+### Fixes
+
+- readme: trailing slash on the 0dep.se/run link
+
 ## v0.1.1 - 2026-09-16
 
 - set package homepage

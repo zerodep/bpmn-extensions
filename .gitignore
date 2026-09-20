@@ -22,7 +22,6 @@ coverage*
 CLAUDE.md
 
 # Compiled client resources
-/dist/
 
 # OS X
 .DS_Store

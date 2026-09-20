@@ -128,7 +128,7 @@ Feature('User task', () => {
     });
 
     And('a FEEL follow-up date is exposed as an ISO 8601 string', () => {
-      expect(content.followUpDate).to.equal('2026-09-04T09:00:00.000Z');
+      expect(content.followUpDate).to.equal('2026-09-04T09:00:00Z');
     });
   });
 

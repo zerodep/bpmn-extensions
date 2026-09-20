@@ -74,7 +74,7 @@ Feature('Stop, recover and resume', () => {
 
     Then('on resume the priority and the ISO due date string are on the wait content', () => {
       expect(result.resumedWait.priority).to.equal(75);
-      expect(result.resumedWait.dueDate).to.equal('2026-09-04T09:00:00.000Z');
+      expect(result.resumedWait.dueDate).to.equal('2026-09-04T09:00:00Z');
     });
 
     And('the recovered definition runs to completion', () => {

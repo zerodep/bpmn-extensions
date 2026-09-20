@@ -1,21 +1,19 @@
 {
   "name": "@0dep/bpmn-extensions",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Flow extensions for bpmn-elements: FEEL expressions and the zeebe-namespace BPMN extension elements",
   "type": "module",
-  "module": "src/index.js",
-  "main": "dist/index.js",
+  "main": "src/index.js",
   "types": "./types/index.d.ts",
   "sideEffects": false,
   "exports": {
     ".": {
       "types": "./types/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./src/index.js"
+      "default": "./src/index.js"
     }
   },
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "scripts": {
     "test": "mocha",
@@ -24,12 +22,11 @@
     "cov:html": "c8 mocha && c8 report --reporter html",
     "posttest": "npm run toc && npm run lint && npm run test:md && npm run prepack",
     "lint": "eslint . --cache && prettier . --check --cache",
-    "toc": "toc README.md",
+    "toc": "toc -c README.md",
     "posttoc": "prettier --write README.md",
     "format": "eslint . --fix && prettier . --write",
-    "dist": "rollup -c",
     "types": "dts-buddy types/index.d.ts -m @0dep/bpmn-extensions:src/index.js",
-    "prepack": "npm run dist && npm run types"
+    "prepack": "npm run types"
   },
   "keywords": [
     "bpmn",
@@ -58,7 +55,7 @@
     "croner": ">=9"
   },
   "dependencies": {
-    "feelin": "^7.0.1"
+    "feelin": "^8.1.0"
   },
   "overrides": {
     "mocha": {
@@ -66,10 +63,8 @@
     }
   },
   "devDependencies": {
-    "@0dep/toc": "^1.0.1",
+    "@0dep/toc": "^2.1.0",
     "@eslint/js": "^10.0.1",
-    "@rollup/plugin-commonjs": "^29.0.3",
-    "@rollup/plugin-node-resolve": "^16.0.3",
     "@types/chai": "^5.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "^26.1.1",
@@ -86,20 +81,17 @@
     "mocha-cakes-2": "^3.3.0",
     "moddle-context-serializer": "^6.0.1",
     "prettier": "^3.9.1",
-    "rollup": "^4.62.2",
     "texample": "^1.0.2",
     "typescript": "^6.0.3",
     "zeebe-bpmn-moddle": "^2.0.0"
   },
   "files": [
     "src",
-    "dist",
     "types",
     "CHANGELOG.md"
   ],
   "c8": {
     "exclude": [
-      "dist",
       "test"
     ]
   }

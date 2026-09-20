@@ -32,12 +32,13 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   `LoopCharacteristics.aggregate` base scope. Tests: `services-in-scope-feature.js` (including
   stop → JSON-serialize state → recover with re-supplied services) + `Expressions-test.js`.
 - **Package name**: `@0dep/bpmn-extensions`.
-- **Module format**: dual. Source is ESM (`src/`, `type: module`); the CommonJS build is bundled
-  with **rollup** into `dist/`. `feelin` is ESM-only so it is **bundled into the CJS output**;
-  `bpmn-elements` and `croner` stay external (peer deps). A generated `dist/package.json` (`{"type":"commonjs"}`)
-  marks the bundle as CommonJS — required because the root package is `type: module`.
+- **Module format**: ESM only (`src/`, `type: module`), no build step. CommonJS consumers get the
+  ESM source through Node's `require(esm)`, unflagged since **Node 22.12** — which is why `engines`
+  is `>=22.12` (the CJS rollup bundle was dropped in v1.0.0; `feelin` is ESM-only and used to be
+  bundled into it). The module graph must stay free of top-level `await`, or `require()` breaks.
+  Not tested here — that would test Node, not this lib.
 - **Types**: generated from JSDoc with **dts-buddy** into `types/index.d.ts` (`npm run types`,
-  also run by `prepack`; `tsconfig.json` is dts-buddy's config). `types/` is gitignored like `dist/`.
+  also run by `prepack`; `tsconfig.json` is dts-buddy's config). `types/` is gitignored.
   Keep the `extensions()` entry point decoupled from the class shapes: it has an explicit
   `@returns {FlowExtension}` (a typedef of `{ activate, deactivate }`), so consumers program against
   that contract. The `ElementExtensions`/`ProcessExtensions`/`SubProcessExtensions` classes **are**
@@ -53,7 +54,7 @@ elements); modeled on that project's architecture but adapted for the `zeebe:*` 
   handlers shared from `ElementExtensions` to its `SubProcessExtensions` subclass
   (`_onEnter`/`_onExecuted`/`_onListener`) — JS has no `protected`, and `#private` isn't visible to
   subclasses, so these stay `_`-prefixed and tagged `@internal`.
-- **Node 22** (`engines: ">=22"`, `.node-version`). Use `fnm use` (the dev uses fnm). Tests import
+- **Node 22.12+** (`engines: ">=22.12"`, `.nvmrc`). Use `fnm use` (the dev uses fnm). Tests import
   the moddle schema with `import ... with { type: 'json' }` (eslint `ecmaVersion: 'latest'`).
 - **Tests**: feature tests are BDD with **mocha-cakes-2** (`Feature/Scenario/Given/When/Then`);
   the `test/src` **unit tests use plain mocha `describe`/`it`** (the mocha-cakes-2 UI keeps both, so
@@ -186,7 +187,7 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
 - **Timer start events / cron.** `TimerEventDefinition` (`src/TimerEventDefinition.js`, a
   subclass of the bpmn-elements one) tries ISO 8601 first and falls back to **cron via `croner`**
   for a `timeCycle` — Camunda 8 schedules timer start events with cron. `croner` is a **peer
-  dependency** (external in the rollup bundle, like bpmn-elements). It is installed through the
+  dependency** (like bpmn-elements). It is installed through the
   serializer type resolver (`TypeResolver({ ...elements, TimerEventDefinition })` — the harness
   does this), not the environment; `parse` throws a `RangeError` (with `cause`) when neither
   format matches, so an unparseable cycle faults the activity exactly as before. The cron branch
@@ -216,8 +217,8 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   enter and put on the content as `priority`, `dueDate`, `followUpDate` (visible on `activity.wait`
   / `getPostponed()`). Forgiving: no 0–100 clamping, no invented default of 50, no date validation
   — an absent attribute is simply skipped. A static numeric priority string becomes a number (the
-  `retries` treatment); non-numeric passes through as-is. A FEEL temporal result (luxon `DateTime`
-  from feelin) or a `Date` is **ISO-stringified** — content is JSON-serialized on `getState()`, so
+  `retries` treatment); non-numeric passes through as-is. A FEEL temporal result (a feelin
+  `FeelDateTime`, Temporal-backed since feelin 8) or a `Date` is **ISO-stringified** via `toJSON()` — content is JSON-serialized on `getState()`, so
   a string is the shape that survives a recover round trip (`stopRecoverResume` in
   `recover-feature.js` JSON round-trips the state to prove it). Tests: `user-task-feature.js` +
   the recover scenario.
@@ -244,7 +245,7 @@ message.content.id`. Regression test: the `mother-of-all-feel` resource in `reso
   `test/src/<File>-test.js` (unit tests of a single `src` module — for real edge cases / guards
   that are awkward to reach through a full flow, e.g. a header with no key, a non-wrapped
   multi-instance output). `.mocharc.cjs` picks up both `*-feature.js` and `*-test.js`.
-- `rollup.config.js` (CJS bundle), `tsconfig.json` (dts-buddy), `eslint.config.js`, `.mocharc.cjs`.
+- `tsconfig.json` (dts-buddy), `eslint.config.js`, `.mocharc.cjs`.
 - `.claude/skills/camunda8-bpmn-schemas/` — reference skill for the `zeebe:*` schema + FEEL.
 
 ## Multi-instance (`zeebe:loopCharacteristics`)
