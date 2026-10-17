@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v1.0.1 - 2026-10-17
+
+- add pkg `browser` property
+
 ## v1.0.0 - 2026-09-20
 
 ### Breaking
