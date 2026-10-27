@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## v1.0.2 - 2026-10-27
+
+- fix pkg `browser` and `module` property, broken path directive
+- upgrade `croner@11` dev dependency, peer stays at `>=9`
+
 ## v1.0.1 - 2026-10-17
 
 - add pkg `browser` property
